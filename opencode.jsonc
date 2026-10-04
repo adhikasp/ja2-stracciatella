@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // Session bootstrap for this repo: configures and builds the worktree in the
+  // background when an agent session starts (see .opencode/plugins/dev-bootstrap/
+  // and AGENTS.md). Loaded automatically from .opencode/plugins/ as well; the
+  // explicit entry is here so it is visible, and dev.py dedupes the double run.
+  "plugins": ["./.opencode/plugins/dev-bootstrap"]
+}

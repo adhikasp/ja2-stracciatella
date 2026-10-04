@@ -1,51 +1,36 @@
 # Agent guidelines
 
-This repo is worked on from both macOS and Windows. Check which machine you're on before picking a command block below.
+This repo is worked on from both macOS and Windows. **`python tools/dev.py <cmd>` is the one entry point on both** (macOS: `python3` if there is no `python`); on Windows it shells into MSYS2 MinGW64 itself. The raw commands it wraps are in [COMPILATION.md](COMPILATION.md#the-raw-commands-behind-toolsdevpy).
 
-## macOS
+## Build, test, run
 
-### Daily build
 ```bash
-source "$HOME/.cargo/env"
-cmake --build build -- -j$(sysctl -n hw.logicalcpu)
-```
-Incremental — only rebuilds changed files. No need to re-run `cmake ..` unless `CMakeLists.txt` changed.
-
-### Test
-```bash
-./build/ja2 -unittests
+python tools/dev.py setup     # once per worktree (idempotent): build dir, uv sync, game_dir check
+python tools/dev.py build     # incremental build
+python tools/dev.py test      # C++ unit tests
+python tools/dev.py e2e [..]  # e2e tests: ctest -L e2e, or one script (tests/e2e/foo.lua --isolated)
+python tools/dev.py run [..]  # play the game (default -res 1280x720)
+python tools/dev.py status    # what dev.py sees: paths, tools, build state
 ```
 
-### Run
-```bash
-./build/ja2 -res 1280x720
-```
+- The build directory is `build` on macOS and `_bin` on Windows; the wrapper creates, configures and updates it (Ninja + sccache + lld when the machine has them, see [Faster builds](COMPILATION.md#faster-builds)).
+- **The compiler cache is shared between worktrees.** Builds set `SCCACHE_BASEDIRS` to their own root so sccache hashes paths relative to it: build `master` (or any branch) once and a fresh worktree of the same code reuses those objects — its first build is minutes, not a full recompile. (Builds that bypass `tools/dev.py` do not share; the cache is path-keyed for them.)
+- Builds and e2e runs take a machine-wide job semaphore, so several agents on one machine share the CPU instead of starving each other. `JA2_JOBS` or `--jobs` overrides the computed count.
+- On Windows a long worktree path (agent worktrees live in deep directories) is built through a short `subst` drive automatically — no MAX_PATH trouble, no manual `subst`.
+- `setup` also checks `game_dir` and warns about the `Data` trap below. Everything is idempotent: re-run `setup` after switching branches or moving a worktree.
+
+### Worktree bootstrap runs itself
+
+`python tools/dev.py bootstrap --auto` fires at session start — the OpenCode plugin in `.opencode/plugins/dev-bootstrap/` and the Claude Code `SessionStart` hook in `.claude/settings.json` both run it. It configures the worktree and builds it **in the background** (log: `~/.ja2-dev/logs/bootstrap-*.log`, `%LOCALAPPDATA%\ja2-dev\logs\` on Windows), and it dedupes, so several sessions starting at once are fine. A fresh worktree is buildable without asking; `python tools/dev.py status` shows where the build is.
+
+## Platform notes
+
+### macOS
 Game data is at `~/Workspace/ja2-gamedir/app`, configured in `~/.ja2/ja2.json`. No flags needed for data dir.
 
-## Windows (MSYS2 MinGW64)
+### Windows (MSYS2 MinGW64)
+Toolchain lives in MSYS2 at `C:\msys64` (packages: `mingw-w64-x86_64-toolchain`, `-rust`, `-cmake`, `-sdl3`, `-fltk`, plus `base-devel`. For the fast loop also install `mingw-w64-x86_64-sccache`, `-lld` and `-ninja` — cmake picks all three up by itself, see [Faster builds](COMPILATION.md#faster-builds)). `tools/dev.py` runs every build command inside that environment for you; plain PowerShell/cmd doesn't have `gcc`/`cmake`/`cargo` on PATH.
 
-Toolchain lives in MSYS2 at `C:\msys64` (packages: `mingw-w64-x86_64-toolchain`, `-rust`, `-cmake`, `-sdl3`, `-fltk`, plus `base-devel`. For the fast loop also install `mingw-w64-x86_64-sccache`, `-lld` and `-ninja` — cmake picks all three up by itself, see [Faster builds](COMPILATION.md#faster-builds)). Build directory is **`_bin`** here, not `build`. Every command needs the MinGW64 environment, so run through a login shell with `MSYSTEM=MINGW64` set — plain PowerShell/cmd won't have `gcc`/`cmake`/`cargo` on PATH.
-
-### Daily build
-```bash
-MSYSTEM=MINGW64 "/c/msys64/usr/bin/bash.exe" -lc "cd '/c/Workspace/ja2-stracciatella/_bin' && cmake --build . --parallel \$(nproc)"
-```
-`cmake --build` uses whatever generator `_bin` was configured with, so this line works for both generators.
-Reconfigure only if `CMakeLists.txt` changed:
-```bash
-MSYSTEM=MINGW64 "/c/msys64/usr/bin/bash.exe" -lc "cd '/c/Workspace/ja2-stracciatella/_bin' && cmake .. -G 'MSYS Makefiles' -DCPACK_GENERATOR=ZIP"
-```
-A *fresh* `_bin` should be configured with `-G Ninja` instead (faster on Windows; a build directory can never change generator, so switch by configuring a new one).
-
-### Test
-```bash
-MSYSTEM=MINGW64 "/c/msys64/usr/bin/bash.exe" -lc "cd '/c/Workspace/ja2-stracciatella/_bin' && ./ja2.exe -unittests"
-```
-
-### Run
-```bash
-MSYSTEM=MINGW64 "/c/msys64/usr/bin/bash.exe" -lc "cd '/c/Workspace/ja2-stracciatella/_bin' && ./ja2.exe -res 1280x720"
-```
 Game data comes from the Steam install: `C:\Program Files (x86)\Steam\steamapps\common\Jagged Alliance 2 Gold`, configured via `game_dir` in `%APPDATA%\JA2\ja2.json`.
 **Gotcha:** `game_dir` must point at the install root (the folder containing `Data\`), not at the `Data` folder itself — pointing it at `Data` directly makes the VFS look for a nonexistent `Data\data` and fail with "Error initializing VFS ... os error 3".
 Log file: `C:\msys64\tmp\ja2.log` (MSYS bash's own `/tmp`, not Windows `%TEMP%`).
@@ -62,9 +47,9 @@ python tools/ja2ctl.py state                  # screen, time, money, mercs
 python tools/ja2ctl.py eval 'return require("lib.campaign").startWithMerc("Barry").sector'
 python tools/ja2ctl.py stop
 python tools/ja2ctl.py run tests/e2e/<name>.lua --isolated   # one-shot script run
-ctest -L e2e -j8 --output-on-failure          # all e2e tests, from the build dir (_bin on Windows)
+python tools/dev.py e2e                                       # all e2e tests (ctest -L e2e)
 ```
-Tests and their shared helpers (`lib/campaign.lua`) live in `tests/e2e/`; see its README. Run `uv sync` once per checkout — it creates `.venv/` with Pillow and numpy, which `ctest` picks up for the resolution/golden-image tests after a fresh cmake configure.
+Tests and their shared helpers (`lib/campaign.lua`) live in `tests/e2e/`; see its README. `python tools/dev.py setup` runs `uv sync` for you — it creates `.venv/` with Pillow and numpy, which `ctest` picks up for the resolution/golden-image tests after a fresh cmake configure.
 Image-only widgets need `SetName(...)` in C++ to be clickable by label; new animations/loading states belong in `NothingInFlight()` in `src/game/Automation/AutomationSession.cc`.
 
 ### Golden / resolution suite

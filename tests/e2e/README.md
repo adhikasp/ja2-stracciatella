@@ -33,19 +33,18 @@ tactical battle e2e track.
 ## Running
 
 They need the original game data (`game_dir` in your `ja2.json`) and the Python
-tooling environment. Install it once per checkout:
+tooling environment; `python tools/dev.py setup` installs the latter (it runs
+`uv sync`, which creates `.venv` with Pillow and numpy from `uv.lock`).
 
 ```bash
-uv sync                        # creates .venv (Python 3.12+) with Pillow and numpy from uv.lock
-```
-
-```bash
-ctest -L e2e -j8 --output-on-failure                                  # all, from the build directory
-python tools/ja2ctl.py run tests/e2e/laptop_tour.lua --isolated       # one, from the repo root
+python tools/dev.py e2e                                             # all, job-capped across agents
+python tools/dev.py e2e tests/e2e/laptop_tour.lua --isolated        # one, from the repo root
 python tools/ja2ctl.py run tests/e2e/laptop_tour.lua --isolated --show   # and watch it
+ctest -L e2e -j8 --output-on-failure                                # raw form, from the build directory
 ```
 
-`ctest` uses `.venv` when it exists, so re-run `cmake` once after `uv sync`.
+`ctest` uses `.venv` when it exists, so re-run `cmake` once after `uv sync`
+(`tools/dev.py setup` does both, in the right order).
 
 `--isolated` gives every run a fresh home directory, so tests never see your
 saves or each other's. Screenshots go to `--out` (CTest uses
