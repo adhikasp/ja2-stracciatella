@@ -2472,3 +2472,61 @@ static ST::string ReplaceMercNameAndAmountWithProperData(const ST::string& pFini
 	return pFinishedString.replace(sAmount, amount).replace(sMercName, mercName);
 }
 
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+namespace LaptopNative
+{
+
+std::vector<Email*> Mails()
+{
+	std::vector<Email*> r;
+	for (Email* m = pEmailList; m; m = m->Next) r.push_back(m);
+	return r;
+}
+
+ST::string MailSender(Email const& m)
+{
+	return pSenderNameList[m.ubSender];
+}
+
+std::vector<ST::string> OpenMail(Email& m)
+{
+	// what DisplayEmailMessage does, without drawing: mark read, run the special mails, read the records
+	m.fRead = TRUE;
+	ClearOutEmailMessageRecordsList();
+	INT32 const offset = m.usOffset;
+	HandleAnySpecialEmailMessageEvents(offset);
+	HandleMailSpecialMessages(offset, &m);
+	PreProcessEmail(&m);
+	std::vector<ST::string> r;
+	Record const* i = pMessageRecordList;
+	if (i && m.usOffset != IMP_EMAIL_PROFILE_RESULTS) i = i->Next; // the first record is the subject
+	for (; i; i = i->Next) r.push_back(i->pRecord);
+	ClearOutEmailMessageRecordsList();
+	PreviousMail = CurrentMail = nullptr;
+	LookForUnread();
+	return r;
+}
+
+void DeleteMail(Email* const m)
+{
+	if (!m) return;
+	if (CurrentMail == m) CurrentMail = nullptr;
+	if (PreviousMail == m) PreviousMail = nullptr;
+	RemoveEmailMessage(m);
+	PlaceMessagesinPages();
+	if (iCurrentPage > iLastPage) iCurrentPage = iLastPage;
+	LookForUnread();
+}
+
+int UnreadMails()
+{
+	int n = 0;
+	for (Email const* m = pEmailList; m; m = m->Next) if (!m->fRead) ++n;
+	return n;
+}
+
+}

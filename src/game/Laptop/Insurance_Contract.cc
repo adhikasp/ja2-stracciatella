@@ -1227,3 +1227,68 @@ static BOOLEAN AreAnyAimMercsOnTeam(void)
 	}
 	return FALSE;
 }
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+#include "EDT.h"
+#include <optional>
+extern std::optional<EDTFile> gInsuranceSingleLineTexts; // Insurance_Text.cc
+
+namespace LaptopNative
+{
+
+std::vector<InsuranceRow> InsuranceRows()
+{
+	// the mercs the contract page shows (BuildInsuranceArray), each with the cost the order grid shows
+	std::vector<InsuranceRow> r;
+	CFOR_EACH_IN_TEAM(s, OUR_TEAM)
+	{
+		if (!MercIsInsurable(s)) continue;
+		INT32 const length = CalculateSoldiersInsuranceContractLength(s);
+		InsuranceRow row{};
+		row.profile = s->ubProfile;
+		row.name = s->name;
+		row.daysLeft = INT32(GetTimeRemainingOnSoldiersInsuranceContract(s));
+		row.insured = s->usLifeInsurance != 0;
+		row.canInsure = CanSoldierExtendInsuranceContract(s) != FALSE;
+		row.premium = CalculateInsuranceContractCost(length, s->ubProfile);
+		row.refund = INT32(GetTimeRemainingOnSoldiersContract(s));
+		r.push_back(row);
+	}
+	return r;
+}
+
+bool Insure(ProfileID const pid)
+{
+	SOLDIERTYPE* const s = FindSoldierByProfileIDOnPlayerTeam(pid);
+	if (!s || !MercIsInsurable(s) || !CanSoldierExtendInsuranceContract(s)) return false;
+	INT32 const length = CalculateSoldiersInsuranceContractLength(s);
+	if (LaptopSaveInfo.iCurrentBalance < CalculateInsuranceContractCost(length, pid)) return false;
+	PurchaseOrExtendInsuranceForSoldier(s, length); // HandleAcceptButton
+	return true;
+}
+
+void CancelInsurance(ProfileID) {}
+
+std::vector<ST::string> InsuranceText(int const page)
+{
+	if (!gInsuranceSingleLineTexts) OpenInsuranceTexts();
+	// 0: the home page's questions, 1: how insurance works, 2: the contract page's intro
+	std::vector<ST::string> r;
+	int first = 0, last = -1;
+	switch (page)
+	{
+		case 0: first = INS_MLTI_EMPLOY_HIGH_RISK; last = INS_MLTI_IF_ANSWERED_YES; break;
+		case 1: first = INS_MLTI_HIRING_4_SHORT_TERM_HIGH_RISK_1; last = INS_MLTI_SHOULD_SUCH_A_SITUATION; break;
+		case 2: first = INS_MLTI_GUS_SPEECH; last = INS_MLTI_FRED_COUSTEAU_SPEECH; break;
+		default: first = INS_MLTI_TO_PURCHASE_INSURANCE; last = INS_MLTI_ONCE_SATISFIED_CLICK_ACCEPT; break;
+	}
+	for (int i = first; i <= last; ++i)
+	{
+		try { ST::string const t = GetInsuranceText(UINT8(i)); if (!t.empty()) r.push_back(t); } catch (...) { break; }
+	}
+	return r;
+}
+
+}

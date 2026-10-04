@@ -853,3 +853,11 @@ static void NextQuestionButtonCallback(GUI_BUTTON *btn, UINT32 iReason)
 		MoveAheadAQuestion( );
 	}
 }
+
+
+// ---- the native laptop (Phase 6): the end of the quiz with the native page's answers -----------------------------
+void ImpNativeCompileQuiz(std::vector<int> const& answers)
+{
+	for (INT32 i = 0; i < MAX_NUMBER_OF_IMP_QUESTIONS; ++i) iQuizAnswerList[i] = i < INT32(answers.size()) ? answers[i] : -1;
+	CompileQuestionsInStatsAndWhatNot();
+}

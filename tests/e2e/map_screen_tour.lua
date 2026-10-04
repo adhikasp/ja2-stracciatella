@@ -65,7 +65,7 @@ ja2.waitScreen("MAP_SCREEN")
 ja2.click{text = "Laptop", exact = true}
 ja2.waitScreen("LAPTOP_SCREEN")
 campaign.dismissLaptopPopups()
-ja2.expect(ja2.exists("Mercs: 1"), "the laptop counts one merc")
+ja2.expect(campaign.laptopMercs() == 1, "the laptop counts one merc")
 ja2.click("Shut Down")
 ja2.waitScreen("MAP_SCREEN")
 shots.take("map.png", true)

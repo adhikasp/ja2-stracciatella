@@ -17,7 +17,9 @@ function mapcampaign.start()
 	else
 		campaign.newGame()
 		campaign.hireFromAim("Barry")
-		campaign.hireFromAim("Ivan", "One Day", true)
+		-- the map tests only need a stable campaign; the default one-week contract matches the
+		-- legacy hire (the legacy A.I.M. page silently keeps its default length)
+		campaign.hireFromAim("Ivan", "One Week", true)
 		ja2.click("Shut Down")
 		ja2.waitScreen("MAP_SCREEN")
 		campaign.dismissHelp()

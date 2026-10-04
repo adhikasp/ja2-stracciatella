@@ -1919,3 +1919,124 @@ TEST(BobbyRMailOrder, asserts)
 }
 
 #endif
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+namespace LaptopNative
+{
+
+std::vector<OrderLine> OrderLines()
+{
+	std::vector<OrderLine> r;
+	for (int i = 0; i < MAX_PURCHASE_AMOUNT; ++i)
+	{
+		BobbyRayPurchaseStruct const& p = BobbyRayPurchases[i];
+		if (p.ubNumberPurchased == 0) continue;
+		int const unit = CalcBobbyRayCost(p.usItemIndex, p.usBobbyItemIndex, p.fUsed);
+		r.push_back({ i, p.usItemIndex, p.ubNumberPurchased, unit, unit * p.ubNumberPurchased, p.fUsed != FALSE, p.bItemQuality,
+			UINT32(GCM->getItem(p.usItemIndex)->getWeight()) * p.ubNumberPurchased });
+	}
+	return r;
+}
+
+void OrderClear()
+{
+	std::fill_n(BobbyRayPurchases, MAX_PURCHASE_AMOUNT, BobbyRayPurchaseStruct{});
+	gubSelectedLight = 0;
+}
+
+void OrderRemoveLine(int const index)
+{
+	if (index < 0 || index >= MAX_PURCHASE_AMOUNT) return;
+	BobbyRayPurchases[index] = BobbyRayPurchaseStruct{};
+}
+
+void OrderChange(int const index, int const delta)
+{
+	if (index < 0 || index >= MAX_PURCHASE_AMOUNT) return;
+	BobbyRayPurchaseStruct& p = BobbyRayPurchases[index];
+	if (p.ubNumberPurchased == 0) return;
+	STORE_INVENTORY const& e = (p.fUsed ? LaptopSaveInfo.BobbyRayUsedInventory : LaptopSaveInfo.BobbyRayInventory)[p.usBobbyItemIndex];
+	int const n = int(p.ubNumberPurchased) + delta;
+	if (n <= 0) { p = BobbyRayPurchaseStruct{}; return; }
+	if (n > e.ubQtyOnHand || n > 200 + 1) return; // the legacy limits
+	p.ubNumberPurchased = UINT8(n);
+}
+
+std::vector<Destination> Destinations()
+{
+	std::vector<Destination> r;
+	for (auto const* d : GCM->getShippingDestinations()) r.push_back({ d->locationId, d->name, d->canDeliver });
+	return r;
+}
+
+OrderTotals OrderTotal(int const city, int const speed)
+{
+	OrderTotals t{};
+	t.weight = CalcPackageTotalWeight();
+	t.subtotal = 0;
+	for (OrderLine const& l : OrderLines()) t.subtotal += l.total;
+	INT8 const keep = gbSelectedCity;
+	gbSelectedCity = INT8(city);
+	for (int s = 0; s < 3; ++s)
+	{
+		auto const* d = city >= 0 ? GCM->getShippingDestination(city) : nullptr;
+		t.ratePerKg[s] = !d ? 0 : s == 0 ? d->chargeRateOverNight : s == 1 ? d->chargeRate2Days : d->chargeRateStandard;
+	}
+	t.shipping = city >= 0 ? INT32(CalcCostFromWeightOfPackage(UINT8(speed))) : 0;
+	gbSelectedCity = keep;
+	t.total = t.subtotal + t.shipping;
+	return t;
+}
+
+bool OrderNeedsConfirmation(int const city)
+{
+	// BtnBobbyRAcceptOrderCallback: no question for the primary destination while it is the player's
+	auto const* dest = GCM->getPrimaryShippingDestination();
+	auto const index = SGPSector(dest->getDeliverySector()).AsStrategicIndex();
+	return !(city == dest->locationId && !StrategicMap[index].fEnemyControlled);
+}
+
+OrderResult PlaceOrder(int const city, int const speed)
+{
+	if (city < 0) return OrderResult::NoDestination;
+	OrderTotals const t = OrderTotal(city, speed);
+	if (t.subtotal == 0) return OrderResult::NothingToOrder;
+	if (LaptopSaveInfo.iCurrentBalance < t.total) return OrderResult::NoFunds;
+
+	// PurchaseBobbyOrder and the confirmation click after it, without the order page's mouse regions
+	gbSelectedCity = INT8(city);
+	gubSelectedLight = UINT8(speed);
+	giGrandTotal = t.total;
+	if (GCM->getShippingDestination(city)->canDeliver)
+	{
+		AddNewBobbyRShipment(BobbyRayPurchases, gbSelectedCity, gubSelectedLight, TRUE, CalcPackageTotalWeight());
+	}
+	AddTransactionToPlayersBook(BOBBYR_PURCHASE, 0, GetWorldTotalMin(), -giGrandTotal);
+	RemovePurchasedItemsFromBobbyRayInventory();
+	std::fill_n(BobbyRayPurchases, MAX_PURCHASE_AMOUNT, BobbyRayPurchaseStruct{});
+	gubSelectedLight = 0;
+	gbSelectedCity = -1;
+	return OrderResult::Placed;
+}
+
+std::vector<Shipment> Shipments()
+{
+	std::vector<Shipment> r;
+	int i = 0;
+	for (NewBobbyRayOrderStruct const& o : gpNewBobbyrShipments)
+	{
+		if (o.fActive)
+		{
+			int items = 0;
+			for (UINT8 k = 0; k < o.ubNumberPurchases; ++k) items += o.BobbyRayPurchase[k].ubNumberPurchased;
+			r.push_back({ i, o.uiOrderedOnDayNum, GCM->getShippingDestination(o.ubDeliveryLoc)->name, items, o.uiPackageWeight });
+		}
+		++i;
+	}
+	return r;
+}
+
+}

@@ -1383,3 +1383,56 @@ static UINT8 CheckPlayersInventoryForGunMatchingGivenAmmoID(ItemModel const* con
 	}
 	return n_items;
 }
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+namespace LaptopNative
+{
+
+static UINT32 ShopClass(Shop const s)
+{
+	switch (s)
+	{
+		case Shop::Guns:   return IC_BOBBY_GUN;
+		case Shop::Ammo:   return IC_AMMO;
+		case Shop::Armour: return IC_ARMOUR;
+		case Shop::Misc:   return IC_BOBBY_MISC;
+		default:           return IC_ALL;
+	}
+}
+
+std::vector<ShopItem> ShopItems(Shop const s)
+{
+	// the items DisplayItemInfo lists for the page, in the same order (all pages at once)
+	bool const used = s == Shop::Used;
+	STORE_INVENTORY const* const inv = used ? LaptopSaveInfo.BobbyRayUsedInventory : LaptopSaveInfo.BobbyRayInventory;
+	std::vector<ShopItem> r;
+	for (UINT16 i = 0; i < MAXITEMS; ++i)
+	{
+		STORE_INVENTORY const& e = inv[i];
+		if (e.ubQtyOnHand == 0) continue;
+		if (!used && !(GCM->getItem(e.usItemIndex)->getItemClass() & ShopClass(s))) continue;
+		UINT8 const p = CheckIfItemIsPurchased(i);
+		int inCart = 0;
+		if (p != BOBBY_RAY_NOT_PURCHASED && BobbyRayPurchases[p].fUsed == (used ? TRUE : FALSE)) inCart = BobbyRayPurchases[p].ubNumberPurchased;
+		r.push_back({ i, e.usItemIndex, e.ubQtyOnHand, e.ubQtyOnOrder, inCart, used ? e.ubItemQuality : 100, CalcBobbyRayCost(e.usItemIndex, i, used) });
+	}
+	return r;
+}
+
+ST::string ShopAdd(Shop const s, UINT16 const slot)
+{
+	LaptopMode const keep = guiCurrentLaptopMode;
+	guiCurrentLaptopMode = s == Shop::Used ? LAPTOP_MODE_BOBBY_R_USED : LAPTOP_MODE_BOBBY_R_GUNS;
+	PurchaseBobbyRayItem(slot); // the legacy checks; a refusal shows the legacy message box
+	guiCurrentLaptopMode = keep;
+	return {};
+}
+
+void ShopRemove(Shop, UINT16 const slot) { UnPurchaseBobbyRayItem(slot); }
+
+ST::string ShopDescription(UINT16 const item) { return GCM->getItem(item)->getBobbyRaysDescription(); }
+
+}

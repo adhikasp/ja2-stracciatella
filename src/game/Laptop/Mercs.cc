@@ -3,6 +3,11 @@
 #include "Laptop.h"
 #include "Local.h"
 #include "Mercs.h"
+#include "LaptopNative.h"
+#include "MercProfile.h"
+#include "Dialogs.h"
+#include <vector>
+static std::vector<UINT16>* g_speck_collect = nullptr;
 #include "Timer_Control.h"
 #include "VObject.h"
 #include "WordWrap.h"
@@ -636,6 +641,14 @@ static BOOLEAN StartSpeckTalking(UINT16 usQuoteNum)
 {
 	if( usQuoteNum == MERC_VIDEO_SPECK_SPEECH_NOT_TALKING || usQuoteNum == MERC_VIDEO_SPECK_HAS_TO_TALK_BUT_QUOTE_NOT_CHOSEN_YET )
 		return( FALSE );
+
+	// the native laptop collects what Speck says instead of starting his video face
+	if (g_speck_collect)
+	{
+		g_speck_collect->push_back(usQuoteNum);
+		gusMercVideoSpeckSpeech = MERC_VIDEO_SPECK_SPEECH_NOT_TALKING;
+		return TRUE;
+	}
 
 	//Reset the time for when speck starts to do the random quotes
 	HandleSpeckIdleConversation( TRUE );
@@ -1714,4 +1727,78 @@ static UINT32 CalcMercDaysServed(void)
 
 	}
 	return( uiDaysServed );
+}
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+namespace LaptopNative
+{
+
+std::vector<ProfileID> MercFiles()
+{
+	std::vector<ProfileID> r;
+	auto const& listings = GCM->getMERCListings();
+	for (size_t i = 0; i < listings.size() && i <= LaptopSaveInfo.gubLastMercIndex; ++i) r.push_back(GetProfileIDFromMERCListingIndex(UINT8(i)));
+	return r;
+}
+
+int MercAccountStatus() { return LaptopSaveInfo.gubPlayersMercAccountStatus; }
+
+void MercOpenAccount()
+{
+	// BtnOpenAccountBoxButtonCallback
+	LaptopSaveInfo.gubPlayersMercAccountStatus = MERC_ACCOUNT_VALID;
+	LaptopSaveInfo.guiPlayersMercAccountNumber = Random(99999);
+	gusMercVideoSpeckSpeech = SPECK_QUOTE_THANK_PLAYER_FOR_OPENING_ACCOUNT;
+}
+
+ST::string SpeckSays()
+{
+	// EnterMercs from another page: count the visit, then Speck's conditional opening as the legacy page picks it
+	if (LaptopSaveInfo.ubPlayerBeenToMercSiteStatus == MERC_SITE_NEVER_VISITED)
+		LaptopSaveInfo.ubPlayerBeenToMercSiteStatus = MERC_SITE_FIRST_VISIT;
+	else if (LaptopSaveInfo.ubPlayerBeenToMercSiteStatus == MERC_SITE_FIRST_VISIT)
+		LaptopSaveInfo.ubPlayerBeenToMercSiteStatus = MERC_SITE_SECOND_VISIT;
+	else
+		LaptopSaveInfo.ubPlayerBeenToMercSiteStatus = MERC_SITE_THIRD_OR_MORE_VISITS;
+
+	std::vector<UINT16> quotes;
+	UINT16 const pending = gusMercVideoSpeckSpeech;
+	g_speck_collect = &quotes;
+	gubArrivedFromMercSubSite = MERC_CAME_FROM_OTHER_PAGE;
+	GetSpeckConditionalOpening(TRUE);
+	for (int i = 0; i < 12 && GetSpeckConditionalOpening(FALSE) != 2; ++i)
+	{
+		if (gfDoneIntroSpeech) break;
+	}
+	if (pending != MERC_VIDEO_SPECK_SPEECH_NOT_TALKING && pending != MERC_VIDEO_SPECK_HAS_TO_TALK_BUT_QUOTE_NOT_CHOSEN_YET) quotes.push_back(pending);
+	g_speck_collect = nullptr;
+	gusMercVideoSpeckSpeech = MERC_VIDEO_SPECK_SPEECH_NOT_TALKING;
+
+	ST::string text;
+	bool first = true;
+	for (UINT16 const q : quotes)
+	{
+		ST::string const t = first ? SayQuote(SPECK, q) : [&] { MercProfile const profile(SPECK); try { return GCM->loadDialogQuoteFromFile(Content::GetDialogueTextFilename(profile, false, false), q); } catch (...) { return ST::string(); } }();
+		first = false;
+		if (t.empty()) continue;
+		if (!text.empty()) text += " ";
+		text += t;
+	}
+	return text;
+}
+
+std::vector<ST::string> MercBio(ProfileID const pid)
+{
+	std::vector<ST::string> r;
+	for (MERCListingModel const* m : GCM->getMERCListings())
+	{
+		if (GetProfileIDFromMERCListing(m) != pid) continue;
+		if (!m->description.empty()) r.push_back(m->description);
+		if (!m->additionalInformation.empty()) r.push_back(m->additionalInformation);
+		break;
+	}
+	return r;
+}
+
 }

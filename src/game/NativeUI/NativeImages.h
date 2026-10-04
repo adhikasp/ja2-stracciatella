@@ -37,4 +37,6 @@ namespace NativeUI
 	void PrepareMockDocument(Rml::ElementDocument* doc);
 	/** The legacy tactical HUD draws itself again after a mock closed. */
 	void RestoreAfterMock();
+	/** The laptop images: "shop-item-<index>" (an item's big picture, LaptopImages.cc). */
+	void RegisterLaptopImages();
 }

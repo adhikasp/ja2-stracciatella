@@ -7,6 +7,7 @@
 #include "ItemModel.h"
 #include "Laptop.h"
 #include "AIMMembers.h"
+#include "LaptopNative.h"
 #include "AIM.h"
 #include "Local.h"
 #include "MercPortrait.h"
@@ -2938,7 +2939,7 @@ static void DisplayPopUpBoxExplainingMercArrivalLocationAndTimeCallBack(MessageB
 	//unset the flag so the msgbox WONT dislay its save buffer
 	gfDontOverRideSaveBuffer = FALSE;
 
-	if( guiCurrentLaptopMode == LAPTOP_MODE_AIM_MEMBERS )
+	if (guiCurrentLaptopMode == LAPTOP_MODE_AIM_MEMBERS && !LaptopNative::Active())
 	{
 		//render the screen
 		gfRedrawScreen = TRUE;
@@ -2955,4 +2956,154 @@ static void DisplayAimMemberClickOnFaceHelpText(void)
 
 	DrawTextToScreen(AimMemberText[2], AIM_FI_RIGHT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y,                                   AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_TITLE_FONT, AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
 	DrawTextToScreen(AimMemberText[3], AIM_FI_RIGHT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y + AIM_FI_CLICK_DESC_TEXT_Y_OFFSET, AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_FONT,       AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+}
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+#include "Dialogs.h"
+#include "MercProfile.h"
+
+
+namespace LaptopNative
+{
+
+INT32 AimContractCharge(ProfileID const pid, Contract const length, bool const equipment)
+{
+	// the same sum as DisplayVideoConferencingDisplay
+	MERCPROFILESTRUCT const& p = GetProfile(pid);
+	INT32 amount = length == Contract::Day ? p.sSalary : length == Contract::Week ? INT32(p.uiWeeklySalary) : INT32(p.uiBiWeeklySalary);
+	if (p.bMedicalDeposit) amount += p.sMedicalDepositAmount;
+	if (equipment) amount += p.usOptionalGearCost;
+	return amount;
+}
+
+Answer AimCall(ProfileID const pid, UINT16& quote)
+{
+	gbCurrentSoldier = pid;
+	MERCPROFILESTRUCT const& p = GetProfile(pid);
+	switch (WillMercAcceptCall())
+	{
+		case AIM_VIDEO_MERC_UNAVAILABLE_MODE: quote = QUOTE_NONE; return Answer::Unavailable;
+		case AIM_VIDEO_FIRST_CONTACT_MERC_MODE:
+			// greeting as InitVideoFaceTalking at first contact: the merc's own greeting, or a cold one when annoyed
+			quote = QUOTE_GREETING; (void)p;
+			return Answer::Talks;
+		default:
+			quote = QUOTE_ANSWERING_MACHINE_MSG;
+			return Answer::AnsweringMachine;
+	}
+}
+
+bool AimWillJoin(ProfileID const pid, UINT16& quote)
+{
+	// CanMercBeHired, with the line the merc says instead of starting the video face
+	MERCPROFILESTRUCT const& p = GetProfile(pid);
+	quote = QUOTE_NONE;
+	if (p.ubDaysOfMoraleHangover > 0) { quote = QUOTE_LAME_REFUSAL; return false; }
+
+	BuddySlot const buddy = GetFirstBuddyOnTeam(p);
+	UINT16 join_quote = QUOTE_NONE;
+	for (UINT8 i = HATED_SLOT1; i < NUM_HATED_SLOTS; ++i)
+	{
+		INT8 const bMercID = p.bHated[i];
+		if (bMercID < 0) continue;
+		if (!IsMercOnTeamAndInOmertaAlreadyAndAlive(bMercID)) continue;
+		switch (buddy)
+		{
+			case BUDDY_SLOT1:          quote = QUOTE_JOINING_CAUSE_BUDDY_1_ON_TEAM;               return true;
+			case BUDDY_SLOT2:          quote = QUOTE_JOINING_CAUSE_BUDDY_2_ON_TEAM;               return true;
+			case LEARNED_TO_LIKE_SLOT: quote = QUOTE_JOINING_CAUSE_LEARNED_TO_LIKE_BUDDY_ON_TEAM; return true;
+			default: break;
+		}
+		switch (i)
+		{
+			case HATED_SLOT1:
+				if (p.bHatedTime[i] >= 24) { join_quote = QUOTE_PERSONALITY_BIAS_WITH_MERC_1; continue; }
+				quote = QUOTE_HATE_MERC_1_ON_TEAM;
+				break;
+			case HATED_SLOT2:
+				if (p.bHatedTime[i] >= 24) { join_quote = QUOTE_PERSONALITY_BIAS_WITH_MERC_2; continue; }
+				quote = QUOTE_HATE_MERC_2_ON_TEAM;
+				break;
+			default:
+				quote = QUOTE_LEARNED_TO_HATE_MERC_ON_TEAM;
+				break;
+		}
+		return false;
+	}
+	if (buddy != BUDDY_NOT_FOUND) return true;
+	if (MercThinksDeathRateTooHigh(p)) { quote = QUOTE_DEATH_RATE_REFUSAL; return false; }
+	if (MercThinksBadReputationTooHigh(p)) { quote = QUOTE_REPUTATION_REFUSAL; return false; }
+	quote = join_quote;
+	return true;
+}
+
+HireResult AimHire(ProfileID const pid, Contract const length, bool const equipment)
+{
+	// AimMemberHireMerc with the choices passed in
+	INT32 const charge = AimContractCharge(pid, length, equipment);
+	if (LaptopSaveInfo.iCurrentBalance < charge) return HireResult::NoFunds;
+
+	MERC_HIRE_STRUCT h{};
+	h.ubProfileID               = pid;
+	h.sSector                   = g_merc_arrive_sector;
+	h.fUseLandingZoneForArrival = TRUE;
+	h.ubInsertionCode           = INSERTION_CODE_ARRIVING_GAME;
+	h.fCopyProfileItemsOver     = equipment;
+	h.uiTimeTillMercArrives     = GetMercArrivalTimeOfDay();
+	h.bWhatKindOfMerc           = MERC_TYPE__AIM_MERC;
+	INT8 const contract_type = length == Contract::Day ? CONTRACT_EXTEND_1_DAY : length == Contract::Week ? CONTRACT_EXTEND_1_WEEK : CONTRACT_EXTEND_2_WEEK;
+	h.iTotalContractLength = length == Contract::Day ? 1 : length == Contract::Week ? 7 : 14;
+
+	INT8 const ret = HireMerc(h);
+	if (ret == MERC_HIRE_OVER_20_MERCS_HIRED) return HireResult::TeamFull;
+	if (ret != MERC_HIRE_OK) return HireResult::Failed;
+
+	SOLDIERTYPE* const s = FindSoldierByProfileIDOnPlayerTeam(pid);
+	if (!s) return HireResult::Failed;
+	s->bTypeOfLastContract = contract_type;
+	if (!equipment && pid == NAILS) CreateItem(LEATHER_JACKET, 100, &s->inv[VESTPOS]);
+
+	MERCPROFILESTRUCT& p = GetProfile(pid);
+	if (equipment) p.ubMiscFlags |= PROFILE_MISC_FLAG_ALREADY_USED_ITEMS;
+	AddTransactionToPlayersBook(HIRED_MERC, pid, GetWorldTotalMin(), -charge + p.sMedicalDepositAmount);
+	if (p.bMedicalDeposit) AddTransactionToPlayersBook(MEDICAL_DEPOSIT, pid, GetWorldTotalMin(), -p.sMedicalDepositAmount);
+	AddHistoryToPlayersLog(HISTORY_HIRED_MERC_FROM_AIM, pid, GetWorldTotalMin(), SGPSector(-1, -1));
+	return HireResult::Hired;
+}
+
+void AimLeaveMessage(ProfileID const pid)
+{
+	gMercProfiles[pid].ubMiscFlags3 |= PROFILE_MISC_FLAG3_PLAYER_LEFT_MSG_FOR_MERC_AT_AIM;
+}
+
+ST::string SayQuote(ProfileID const pid, UINT16 const quote)
+{
+	if (quote == QUOTE_NONE) return {};
+	MercProfile const profile(pid);
+	ST::string text;
+	try { text = GCM->loadDialogQuoteFromFile(Content::GetDialogueTextFilename(profile, false, false), quote); }
+	catch (...) {}
+	try
+	{
+		ST::string const voice = Content::GetDialogueVoiceFilename(profile, quote, false, false, isRussianVersion() || isRussianGoldVersion());
+		StopAnyCurrentlyTalkingSpeech();
+		PlayJA2SampleFromFile(voice.c_str(), HIGHVOLUME, 1, MIDDLEPAN);
+	}
+	catch (...) {}
+	return text;
+}
+
+std::vector<ST::string> AimBio(ProfileID const pid)
+{
+	std::vector<ST::string> r;
+	if (auto const l = GCM->aimListings()->optionalById(pid))
+	{
+		if (!l->description.empty()) r.push_back(l->description);
+		if (!l->additionalInformation.empty()) r.push_back(l->additionalInformation);
+	}
+	return r;
+}
+
 }

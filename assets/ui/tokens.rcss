@@ -121,3 +121,23 @@
 --t-slow:  0.30s;   /* modals, toasts, panels */
 --ease:    cubic-out;
 --ease-in: cubic-in;
+
+/* ---------------------------------------------------------------- laptop site identities (Phase 6, docs/ui/laptop.md)
+ * Each web site in the laptop browser keeps its own brand inside the Night Ops shell: a brand colour, a page
+ * background and a band colour. Status, focus and selection colours stay the shared ones on every site. */
+--site-aim:        #D4AF5A;  /* A.I.M.: brass on navy, the respectable agency */
+--site-aim-bg:     #0E1524;
+--site-aim-band:   #17223A;
+--site-merc:       #FF5A3D;  /* M.E.R.C.: Speck's loud red, cut-price */
+--site-merc-bg:    #170F0D;
+--site-merc-band:  #2A1714;
+--site-imp:        #5FD3E0;  /* I.M.P.: clinical cyan, a lab test */
+--site-imp-bg:     #0B171A;
+--site-imp-band:   #122428;
+--site-bobby:      #F59A2E;  /* Bobby Ray's: gun-shop orange on khaki-dark */
+--site-bobby-bg:   #16130D;
+--site-bobby-band: #241F14;
+--site-florist:    #E98DB6;
+--site-insurance:  #CDB98E;
+--site-funeral:    #A88CD6;
+--site-on-brand:   #0B0F0D;

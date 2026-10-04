@@ -1032,3 +1032,38 @@ static UINT8 GetNextAimAd(UINT8 ubCurrentAd)
 
 	return( ubNextAd );
 }
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+namespace LaptopNative
+{
+
+std::vector<ST::string> AimText(int const page)
+{
+	// 0: the policies (aimpol.edt), 1: the history (the A.I.M. texts from IN_THE_BEGINNING), 3: the alumni names
+	std::vector<ST::string> r;
+	try
+	{
+		if (page == 0)
+		{
+			EDTFile const f(EDTFile::AIM_POLICIES);
+			for (unsigned i = 0; i < 46; ++i) { ST::string const t = f.at(i); if (!t.empty()) r.push_back(t); }
+		}
+		else if (page == 1)
+		{
+			EDTFile const f(EDTFile::AIM_TEXT);
+			for (unsigned i = 6; i <= 25; ++i) { ST::string const t = f.at(i); if (!t.empty()) r.push_back(t); }
+		}
+		else if (page == 3)
+		{
+			EDTFile const f(EDTFile::AIM_ALUMNI_NAMES);
+			for (unsigned i = 0; i < 49; ++i) { ST::string const t = f.at(i); if (!t.empty()) r.push_back(t); }
+		}
+	}
+	catch (...) {}
+	return r;
+}
+
+}

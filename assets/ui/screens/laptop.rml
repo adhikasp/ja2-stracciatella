@@ -1,0 +1,518 @@
+<rml>
+<head>
+	<title>Laptop</title>
+	<link type="text/rcss" href="../components.rcss"/>
+	<link type="text/rcss" href="laptop.rcss"/>
+</head>
+<!-- The native laptop (docs/ui/laptop.md). View model: LaptopViewModel ("laptop"). -->
+<body class="lt">
+<div class="lt-root" id="laptop" data-model="laptop">
+	<div class="lt-bg audit-skip"></div>
+
+	<!-- system bar -->
+	<div class="lt-top">
+		<div class="lt-os" title="sir-FER 4.0"><img class="icon" src="icon-laptop"/></div>
+		<div class="lt-app">
+			<span class="t" id="laptop.title" data-if="app == 'desktop'">{{l_desktop}}</span>
+			<span class="t" data-if="app == 'email'">{{l_mail}}</span>
+			<span class="t" data-if="app == 'web'">{{l_web}}</span>
+			<span class="t" data-if="app == 'finances'">{{l_finances}}</span>
+			<span class="t" data-if="app == 'personnel'">{{l_personnel}}</span>
+			<span class="t" data-if="app == 'history'">{{l_history}}</span>
+			<span class="t" data-if="app == 'files'">{{l_files}}</span>
+			<span class="s" data-if="app == 'web'" data-attr-title="web_title">{{web_title}}</span>
+		</div>
+		<div class="lt-stat" id="laptop.date"><span class="k">{{l_day}} {{day}}</span><span class="v">{{time}}</span></div>
+		<div class="lt-stat" id="laptop.balance"><span class="k">{{l_f_balance}}</span><span class="v">{{balance}}</span></div>
+		<div class="lt-stat" id="laptop.team"><span class="k">{{l_personnel}}</span><span class="v">{{team}}</span></div>
+		<button class="icon-btn first-btn" id="laptop.help" data-label="Help" title="Help (H)" data-event-click="help"><img class="icon" src="icon-question"/></button>
+		<button class="btn" id="laptop.tomap" data-label="Map" data-event-click="close"><img class="icon" src="icon-map"/><span class="label">{{l_map}}</span><span class="kbd">Esc</span></button>
+	</div>
+
+	<!-- dock -->
+	<div class="lt-dock" id="laptop.dock">
+		<div class="app" id="laptop.app.email" data-label="E-mail" data-class-active="app == 'email'" data-event-click="app('email')" data-attr-title="l_mail + ' (F1)'"><img class="icon" src="icon-mail"/><span class="label">{{l_mail}}</span><span class="kbd">F1</span><span class="badge info" data-if="unread_mail > 0">{{unread_mail}}</span></div>
+		<div class="app" id="laptop.app.web" data-label="Web" data-class-active="app == 'web'" data-event-click="app('web')" data-attr-title="l_web + ' (F2)'"><img class="icon" src="icon-globe"/><span class="label">{{l_web}}</span><span class="kbd">F2</span></div>
+		<div class="app" id="laptop.app.finances" data-label="Finances" data-class-active="app == 'finances'" data-event-click="app('finances')" data-attr-title="l_finances + ' (F3)'"><img class="icon" src="icon-money"/><span class="label">{{l_finances}}</span><span class="kbd">F3</span></div>
+		<div class="app" id="laptop.app.personnel" data-label="Personnel" data-class-active="app == 'personnel'" data-event-click="app('personnel')" data-attr-title="l_personnel + ' (F4)'"><img class="icon" src="icon-squad"/><span class="label">{{l_personnel}}</span><span class="kbd">F4</span></div>
+		<div class="app" id="laptop.app.history" data-label="History" data-class-active="app == 'history'" data-event-click="app('history')" data-attr-title="l_history + ' (F5)'"><img class="icon" src="icon-history"/><span class="label">{{l_history}}</span><span class="kbd">F5</span></div>
+		<div class="app" id="laptop.app.files" data-label="Files" data-class-active="app == 'files'" data-event-click="app('files')" data-attr-title="l_files + ' (F6)'"><img class="icon" src="icon-folder"/><span class="label">{{l_files}}</span><span class="kbd">F6</span><span class="badge info" data-if="unread_files > 0">{{unread_files}}</span></div>
+		<div class="app off" id="laptop.close" data-label="Shut Down" data-event-click="close" data-attr-title="l_close + ' (Esc)'"><img class="icon" src="icon-power"/><span class="label">{{l_close}}</span><span class="kbd">Esc</span></div>
+	</div>
+
+	<div class="lt-win" id="laptop.window">
+
+	<!-- ============================================================ desktop -->
+	<div class="dk" data-if="app == 'desktop'" id="desktop">
+		<div class="dk-main">
+			<span class="dk-hello">sir-FER 4.0 &#183; {{l_day}} {{day}}, {{time}}</span>
+			<span class="dk-title">{{l_desktop}}</span>
+			<div class="dk-tiles">
+				<div class="tile" id="desktop.email" data-label="Open E-mail" data-class-hot="unread_mail > 0" data-event-click="app('email')"><img class="icon" src="icon-mail"/><span class="badge info" data-if="unread_mail > 0">{{unread_mail}}</span><span class="kbd">F1</span><span class="t">{{l_mail}}</span><span class="d">{{l_mailbox}}</span></div>
+				<div class="tile" id="desktop.web" data-label="Open Web" data-event-click="app('web')"><img class="icon" src="icon-globe"/><span class="kbd">F2</span><span class="t">{{l_web}}</span><span class="d">sir-FER 4.0</span></div>
+				<div class="tile" id="desktop.finances" data-label="Open Finances" data-event-click="app('finances')"><img class="icon" src="icon-money"/><span class="kbd">F3</span><span class="t">{{l_finances}}</span><span class="d">{{balance}}</span></div>
+				<div class="tile" id="desktop.personnel" data-label="Open Personnel" data-event-click="app('personnel')"><img class="icon" src="icon-squad"/><span class="kbd">F4</span><span class="t">{{l_personnel}}</span><span class="d">{{team}}</span></div>
+				<div class="tile" id="desktop.history" data-label="Open History" data-event-click="app('history')"><img class="icon" src="icon-history"/><span class="kbd">F5</span><span class="t">{{l_history}}</span><span class="d">{{l_historylog}}</span></div>
+				<div class="tile" id="desktop.files" data-label="Open Files" data-class-hot="unread_files > 0" data-event-click="app('files')"><img class="icon" src="icon-folder"/><span class="badge info" data-if="unread_files > 0">{{unread_files}}</span><span class="kbd">F6</span><span class="t">{{l_files}}</span><span class="d">{{l_fileviewer}}</span></div>
+			</div>
+			<span class="section" style="margin-top: 16dp;">{{l_bookmarks}}</span>
+			<div class="dk-sites">
+				<div class="site-tile" data-for="b : bookmarks" data-attr-id="'desktop.site.' + b.id" data-attr-data-label="b.title" data-attr-class="'site-tile ' + b.cls" data-event-click="site(b.id)"><span class="t">{{b.title}}</span><span class="h">{{b.sub}}</span></div>
+			</div>
+		</div>
+		<div class="dk-side">
+			<span class="section">{{l_notifications}}</span>
+			<div class="panel" id="desktop.notifications">
+				<div class="notif" data-for="n : notes"><img class="icon" data-attr-src="'icon-' + n.icon"/><div class="grow"><span class="t" data-attr-title="n.title">{{n.title}}</span><span class="d" data-attr-title="n.sub">{{n.sub}}</span></div><span class="w">{{n.meta}}</span></div>
+				<div class="notif" data-if="note_count == 0"><span class="d">{{l_nothing}}</span></div>
+			</div>
+		</div>
+	</div>
+
+	<!-- ============================================================ e-mail -->
+	<div class="ml" data-if="app == 'email'" id="email">
+		<div class="ml-list" data-class-full="mail_open &lt; 0">
+			<div class="ml-tools"><span class="strong">{{l_mailbox}}</span><span class="count">{{mail_count}} &#183; {{unread_mail}}</span></div>
+			<div class="thead">
+				<span class="th m-dot"></span>
+				<span class="th m-from sortable" id="email.sort.from" data-class-sorted="mail_sort == 'from'" data-event-click="mail_sort('from')"><span>{{l_from}}</span></span>
+				<span class="th m-subj sortable" id="email.sort.subject" data-class-sorted="mail_sort == 'subject'" data-event-click="mail_sort('subject')"><span>{{l_subject}}</span></span>
+				<span class="th m-day sortable" id="email.sort.day" data-class-sorted="mail_sort == 'day'" data-event-click="mail_sort('day')"><span class="grow"></span><span>{{l_day}}</span><img class="icon" data-if="mail_sort == 'day'" data-attr-src="mail_sort_desc ? 'icon-sort-desc' : 'icon-sort-asc'"/></span>
+			</div>
+			<div class="scroll" id="email.list">
+				<div class="tr" data-for="m : mails" data-attr-id="'email.mail[' + m.index + ']'" data-attr-data-label="m.sub" data-class-unread="m.alt" data-class-read="!m.alt" data-class-selected="m.on" data-event-click="mail_open(m.index)">
+					<div class="m-dot"><img class="icon" src="icon-mail" data-if="m.alt"/></div>
+					<span class="m-from" data-attr-title="m.title">{{m.title}}</span><span class="m-subj" data-attr-title="m.sub">{{m.sub}}</span><span class="m-day">{{m.meta}}</span>
+				</div>
+				<div class="empty" data-if="mail_count == 0">{{l_no_mail}}</div>
+			</div>
+		</div>
+		<div class="ml-read" id="email.reader" data-if="mail_open &gt;= 0">
+			<div class="ml-rhead"><span class="ml-subject" id="email.subject" data-attr-title="mail_subject">{{mail_subject}}</span>
+				<div class="ml-meta"><span class="from">{{mail_from}}</span><span>{{mail_day}}</span></div></div>
+			<div class="ml-body" id="email.body"><p data-for="p : mail_body">{{p}}</p></div>
+			<div class="ml-ract">
+				<button class="btn btn-danger" id="email.delete" data-label="Delete" data-event-click="mail_delete"><img class="icon" src="icon-remove"/><span class="label">{{l_delete}}</span><span class="kbd">Del</span></button>
+				<span class="grow"></span>
+				<button class="btn" id="email.prev" data-label="Previous" data-event-click="mail_step(-1)"><img class="icon" src="icon-chevron-up"/><span class="label">{{l_previous}}</span></button>
+				<button class="btn" id="email.next" data-label="Next" data-event-click="mail_step(1)"><img class="icon" src="icon-chevron-down"/><span class="label">{{l_next}}</span></button>
+				<button class="btn" id="email.close" data-label="Close message" data-event-click="mail_close"><img class="icon" src="icon-close"/><span class="label">{{l_close_message}}</span><span class="kbd">Esc</span></button>
+			</div>
+		</div>
+	</div>
+
+	<!-- ============================================================ files -->
+	<div class="ml" data-if="app == 'files'" id="files">
+		<div class="ml-list fl-list">
+			<div class="ml-tools"><span class="strong">{{l_fileviewer}}</span><span class="count">{{file_count}}</span></div>
+			<div class="scroll" id="files.list">
+				<div class="tr" data-for="f : files" data-attr-id="'files.file[' + f.index + ']'" data-attr-data-label="f.title" data-class-unread="f.alt" data-class-selected="f.on" data-event-click="file_open(f.index)">
+					<div class="m-dot"><img class="icon" src="icon-folder"/></div><span class="m-subj">{{f.title}}</span>
+				</div>
+				<div class="empty" data-if="file_count == 0">{{l_no_files}}</div>
+			</div>
+		</div>
+		<div class="ml-read" id="files.reader">
+			<div class="ml-body"><p data-for="p : file_body">{{p}}</p><div class="empty" data-if="file_open &lt; 0">{{l_choose}}</div></div>
+		</div>
+	</div>
+
+	<!-- ============================================================ history -->
+	<div class="fin" data-if="app == 'history'" id="history">
+		<div class="ledger panel">
+			<div class="thead"><span class="th c-day"><span>{{l_h_day}}</span></span><span class="th c-loc"><span>{{l_h_location}}</span></span><span class="th c-tx"><span>{{l_h_event}}</span></span></div>
+			<div class="scroll" id="history.list">
+				<div class="tr" data-for="h : history_rows" data-attr-id="'history.row[' + h.index + ']'" data-class-sepb="h.cls == 'first'" data-class-open="h.alt">
+					<span class="c-day">{{h.meta}}</span><span class="c-loc" data-attr-title="h.sub">{{h.sub}}</span><span class="c-tx" data-attr-title="h.title">{{h.title}}</span>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- ============================================================ finances -->
+	<div class="fin" data-if="app == 'finances'" id="finances">
+		<div class="fin-cards" id="finances.summary">
+			<div class="fcard hl"><span class="k">{{l_fs9}}</span><span class="v" id="finances.balance">{{fin_balance}}</span></div>
+			<div class="fcard"><span class="k">{{l_fs6}}</span><span class="v ok-t">{{fin_today_income}}</span><span class="d">{{l_fs7}} {{fin_today_other}}</span></div>
+			<div class="fcard"><span class="k">{{l_fs8}}</span><span class="v danger-t">{{fin_today_debits}}</span></div>
+			<div class="fcard"><span class="k">{{l_fs10}}</span><span class="v">{{fin_forecast}}</span></div>
+			<div class="fcard last"><span class="k">{{l_fs11}}</span><span class="v">{{fin_projected}}</span></div>
+		</div>
+		<div class="fin-main">
+			<div class="ledger panel">
+				<div class="thead"><span class="th c-day"><span>{{l_f_day}}</span></span><span class="th c-tx"><span>{{l_f_tx}}</span></span><span class="th c-cr"><span class="grow"></span><span>{{l_f_credit}}</span></span><span class="th c-db"><span class="grow"></span><span>{{l_f_debit}}</span></span><span class="th c-bal"><span class="grow"></span><span>{{l_f_balance}}</span></span></div>
+				<div class="scroll" id="finances.ledger">
+					<div class="tr" data-for="t : ledger" data-attr-id="'finances.tx[' + t.index + ']'" data-class-sepb="t.cls == 'first'">
+						<span class="c-day">{{t.meta}}</span><span class="c-tx" data-attr-title="t.title">{{t.title}}</span><span class="c-cr">{{t.sub}}</span><span class="c-db">{{t.value}}</span><span class="c-bal">{{t.extra}}</span>
+					</div>
+				</div>
+			</div>
+			<div class="fin-side">
+				<div class="panel pad">
+					<div class="kv"><span class="k">{{l_fs2}}</span><span class="v ok-t">{{fin_y_income}}</span></div>
+					<div class="kv"><span class="k">{{l_fs3}}</span><span class="v">{{fin_y_other}}</span></div>
+					<div class="kv"><span class="k">{{l_fs4}}</span><span class="v danger-t">{{fin_y_debits}}</span></div>
+					<div class="kv total"><span class="k">{{l_fs5}}</span><span class="v">{{fin_y_balance}}</span></div>
+				</div>
+				<div class="panel pad"><div class="spark" id="finances.chart"><div class="b" data-for="c : chart" data-class-neg="c.alt" data-style-height="c.n + '%'" data-attr-title="c.meta + ': ' + c.title"></div></div></div>
+			</div>
+		</div>
+	</div>
+
+	<!-- ============================================================ personnel -->
+	<div class="per" data-if="app == 'personnel'" id="personnel">
+		<div class="per-roster">
+			<div class="tabs" id="personnel.tabs">
+				<span class="tab" id="personnel.tab.current" data-class-active="pers_tab == 'current'" data-event-click="pers_tab('current')">{{l_team_current}}</span>
+				<span class="tab" id="personnel.tab.departed" data-class-active="pers_tab == 'departed'" data-event-click="pers_tab('departed')">{{l_team_departed}}</span>
+			</div>
+			<div class="scroll" id="personnel.roster">
+				<div class="prow" data-for="r : roster" data-attr-id="'personnel.merc[' + r.index + ']'" data-attr-data-label="r.title" data-class-selected="r.on" data-class-dead="r.cls == 'dead'" data-event-click="merc_select(r.index)">
+					<div class="ph"><img data-attr-src="r.icon"/></div>
+					<div class="who"><span class="n">{{r.title}}</span><span class="d" data-attr-title="r.sub">{{r.sub}}</span></div>
+					<div class="hp" data-if="pers_tab == 'current'"><div class="bar hp"><div class="fill" data-style-width="r.n + '%'"></div></div></div>
+					<span class="c" data-class-warn-t="r.alt">{{r.meta}}</span>
+				</div>
+			</div>
+			<div class="per-team" id="personnel.teamstats">
+				<div class="kv"><span class="k">{{l_team_daily}}</span><span class="v">{{team_daily}}</span></div>
+				<div class="kv"><span class="k">{{l_team_high}}</span><span class="v">{{team_high}}</span></div>
+				<div class="kv"><span class="k">{{l_team_low}}</span><span class="v">{{team_low}}</span></div>
+			</div>
+		</div>
+		<div class="per-detail" data-if="pd_has">
+			<div class="pd-head"><div class="pd-face" id="personnel.face" data-class-dead="pd_dead"><img data-attr-src="pd_face"/></div>
+				<div class="pd-id"><span class="pd-name" id="personnel.name">{{pd_name}}</span><span class="pd-full">{{pd_full}} &#183; {{pd_where}}</span>
+					<div data-if="pd_hp != ''">
+						<div class="stat"><span class="k">HP</span><span class="bar hp"><span class="fill" data-style-width="pd_hp_pct"></span></span><span class="v">{{pd_hp}}</span></div>
+						<div class="stat"><span class="k">EN</span><span class="bar breath"><span class="fill" data-style-width="pd_breath_pct"></span></span><span class="v">{{pd_breath}}</span></div>
+						<div class="stat"><span class="k">MOR</span><span class="bar morale"><span class="fill" data-style-width="pd_morale_pct"></span></span><span class="v">{{pd_morale}}</span></div>
+					</div>
+				</div></div>
+			<div class="tabs pd-tabs" id="personnel.view">
+				<span class="tab" id="personnel.view.stats" data-class-active="pers_view == 'stats'" data-event-click="pers_view('stats')">{{l_stats}}</span>
+				<span class="tab" id="personnel.view.inventory" data-class-active="pers_view == 'inventory'" data-event-click="pers_view('inventory')">{{l_inventory}}</span>
+			</div>
+			<div class="pd-body" data-if="pers_view == 'stats'">
+				<div class="pd-col"><span class="section">{{l_attributes}}</span><div class="attr2" data-for="a : pd_attrs"><span class="k">{{a.title}}</span><span class="v">{{a.value}}</span></div></div>
+				<div class="pd-col"><span class="section">{{l_employment}}</span><div class="attr2" data-for="a : pd_employment"><span class="k">{{a.title}}</span><span class="v">{{a.value}}</span></div></div>
+				<div class="pd-col last"><span class="section">{{l_record}}</span><div class="attr2" data-for="a : pd_record"><span class="k">{{a.title}}</span><span class="v">{{a.value}}</span></div></div>
+			</div>
+			<div class="pd-body inv scroll" data-if="pers_view == 'inventory'" id="personnel.inventory">
+				<div class="gi" data-for="i : pd_items" data-attr-title="i.title"><div class="pic"><img data-attr-src="'shop-item-' + i.id"/></div><span>{{i.title}}</span><span class="dim">{{i.value}}</span></div>
+			</div>
+		</div>
+	</div>
+
+	<!-- ============================================================ web -->
+	<div class="br" data-if="app == 'web'" id="web">
+		<div class="br-bar">
+			<button class="icon-btn" id="web.back" title="Back (Alt+Left)" data-class-is-disabled="!can_back" data-event-click="back"><img class="icon" src="icon-chevron-left"/></button>
+			<button class="icon-btn" id="web.forward" title="Forward (Alt+Right)" data-class-is-disabled="!can_forward" data-event-click="forward"><img class="icon" src="icon-chevron-right"/></button>
+			<div class="br-url" id="web.address"><img class="icon" src="icon-lock"/><span class="host">{{host}}</span><span>{{path}}</span></div>
+			<div class="row grow bm-row" id="web.bookmarks">
+				<div data-for="b : bookmarks" data-attr-id="'web.bookmark.' + b.id" data-attr-data-label="b.title" data-attr-class="'bm ' + b.cls" data-class-active="b.on" data-event-click="site(b.id)" data-attr-title="b.sub"><span class="sw"></span><span>{{b.title}}</span></div>
+			</div>
+		</div>
+		<div class="br-load audit-skip" data-if="loading &gt; 0"></div>
+		<div class="br-page" id="web.page" data-attr-class="'br-page page-' + site">
+
+		<!-- ------------------------------------------------ A.I.M. -->
+		<div class="aim" data-if="site == 'aim'">
+			<div class="site-head"><span class="wm">A.I.M.</span><span class="wm-sub">Association of International Mercenaries</span><span class="grow"></span>
+				<div class="site-nav">
+					<span class="lk" id="aim.nav.members" data-class-on="page == 'members' || page == 'member'" data-event-click="page('members')">{{l_aim_members}}</span>
+					<span class="lk" id="aim.nav.alumni" data-class-on="page == 'alumni'" data-event-click="page('alumni')">{{l_aim_alumni}}</span>
+					<span class="lk" id="aim.nav.policies" data-class-on="page == 'policies'" data-event-click="page('policies')">{{l_aim_policies}}</span>
+					<span class="lk" id="aim.nav.history" data-class-on="page == 'history'" data-event-click="page('history')">{{l_aim_history}}</span>
+					<span class="lk" id="aim.nav.links" data-class-on="page == 'links'" data-event-click="page('links')">{{l_aim_links}}</span>
+				</div></div>
+			<div data-if="page == 'members'">
+				<div class="aim-tools"><span class="lbl">{{l_sort_by}}</span>
+					<div class="chip" data-for="c : aim_sort_chips" data-attr-id="'aim.sort.' + c.id" data-class-on="c.on" data-event-click="aim_sort(c.id)"><span>{{c.title}}</span><img class="icon" data-if="c.on" data-attr-src="c.alt ? 'icon-sort-desc' : 'icon-sort-asc'"/></div>
+					<span class="grow"></span>
+					<div class="chip" id="aim.show.all" data-class-on="!aim_available_only" data-event-click="aim_filter('all')"><span>{{l_show_all}}</span></div>
+					<div class="chip" id="aim.show.available" data-class-on="aim_available_only" data-event-click="aim_filter('available')"><span>{{l_show_available}}</span></div>
+				</div>
+				<div class="aim-grid" id="aim.members">
+					<div class="mcard" data-for="m : aim_members" data-attr-id="'aim.member[' + m.index + ']'" data-attr-data-label="m.title" data-attr-class="'mcard ' + m.cls" data-class-selected="m.on" data-event-click="aim_member(m.index)" data-attr-title="m.title + ': ' + m.meta">
+						<div class="ph"><img data-attr-src="m.icon"/></div><div class="st" data-if="m.value != ''"><span class="tag" data-class-ok="m.cls == 'hired'" data-class-warn="m.cls == 'away'" data-class-danger="m.cls == 'dead'">{{m.value}}</span></div>
+						<span class="nm">{{m.title}}</span><div class="meta"><span class="grow">{{m.sub}}</span><span class="fee">{{m.meta}}</span></div>
+					</div>
+				</div>
+			</div>
+			<div class="aim-page" data-if="page == 'member'" id="aim.member">
+				<div class="aim-face"><div class="ph" id="aim.member.face"><img data-attr-src="am_face"/></div>
+					<div class="nav"><button class="btn" id="aim.member.prev" data-label="Previous" data-event-click="aim_step(-1)"><img class="icon" src="icon-chevron-left"/><span class="label">{{l_previous}}</span></button><button class="btn" id="aim.member.next" data-label="Next" data-event-click="aim_step(1)"><img class="icon" src="icon-chevron-right"/><span class="label">{{l_next}}</span></button></div>
+					<button class="btn-site wide" id="aim.contact" data-label="Contact" data-if="hire_state == '' &amp;&amp; am_status == ''" data-event-click="aim_call"><img class="icon" src="icon-video"/><span>{{l_contact}}</span></button>
+					<span class="tag" data-if="am_status != ''">{{am_status}}</span>
+				</div>
+				<div class="aim-info">
+					<span class="aim-name" id="aim.member.name">{{am_name}}</span><span class="aim-full">{{am_full}}</span>
+					<div class="aim-cols"><div class="aim-stats" id="aim.member.stats"><div class="srow" data-for="s : am_stats"><span class="k">{{s.title}}</span><div class="bar"><div class="fill" data-style-width="s.n + '%'"></div></div><span class="v">{{s.value}}</span></div></div>
+						<div class="aim-bio grow"><span class="section">{{l_additional}}</span><p data-for="b : am_bio">{{b}}</p>
+							<span class="section" style="margin-top: 12dp;" data-if="am_gear.size &gt; 0">{{l_gear}} &#183; {{am_gear_cost}}</span>
+							<div class="gear" id="aim.member.gear"><div class="gi" data-for="g : am_gear" data-attr-title="g.title"><div class="pic"><img data-attr-src="'shop-item-' + g.id"/></div><span>{{g.title}} {{g.value}}</span></div></div>
+							<div class="fees" id="aim.member.fees"><div class="fee-c"><span class="k">{{l_one_day}}</span><span class="v">{{am_fee1}}</span></div><div class="fee-c"><span class="k">{{l_one_week}}</span><span class="v">{{am_fee7}}</span></div><div class="fee-c"><span class="k">{{l_two_weeks}}</span><span class="v">{{am_fee14}}</span></div></div>
+							<div class="row" style="margin-top: 12dp;" data-if="am_medical != ''"><span class="tag info">{{am_medical}}</span></div>
+						</div></div>
+				</div>
+				<div class="vc" id="aim.hire" data-if="hire_state != ''">
+					<div class="vc-head"><img class="icon" src="icon-video"/><span class="t">{{am_name}}</span><button class="icon-btn" id="aim.hire.hangup" data-label="Hang up" title="Hang up (Esc)" data-event-click="aim_hangup"><img class="icon" src="icon-close"/></button></div>
+					<div class="vc-feed"><div class="ph"><img data-attr-src="am_face"/></div><div class="say" id="aim.hire.quote">{{hire_quote}}</div></div>
+					<div class="vc-msg" data-if="hire_message != ''" id="aim.hire.message">{{hire_message}}</div>
+					<div class="vc-act" data-if="hire_state == 'talk'">
+						<button class="btn" id="aim.hire.cancel" data-label="Hang up" data-event-click="aim_hangup"><span class="label">{{l_hangup}}</span></button>
+						<button class="btn btn-primary" id="aim.hire.tohire" data-label="Hire" data-event-click="aim_hire"><img class="icon" src="icon-contract"/><span class="label">{{l_hire}}</span></button>
+					</div>
+					<div class="vc-act" data-if="hire_state == 'machine'">
+						<button class="btn" id="aim.hire.cancel2" data-label="Hang up" data-event-click="aim_hangup"><span class="label">{{l_hangup}}</span></button>
+						<button class="btn btn-primary" id="aim.hire.leavemessage" data-label="Leave message" data-event-click="aim_message"><span class="label">{{l_leave_message}}</span></button>
+					</div>
+					<div data-if="hire_state == 'hire'">
+						<div class="vc-body">
+							<span class="section">{{l_contract_length}}</span>
+							<div class="seg" id="aim.hire.length">
+								<div class="o" id="aim.hire.length[0]" data-label="One Day" data-class-on="hire_length == 0" data-event-click="aim_length(0)"><span class="a">{{l_one_day}}</span><span class="b">{{am_fee1}}</span></div>
+								<div class="o" id="aim.hire.length[1]" data-label="One Week" data-class-on="hire_length == 1" data-event-click="aim_length(1)"><span class="a">{{l_one_week}}</span><span class="b">{{am_fee7}}</span></div>
+								<div class="o" id="aim.hire.length[2]" data-label="Two Weeks" data-class-on="hire_length == 2" data-event-click="aim_length(2)"><span class="a">{{l_two_weeks}}</span><span class="b">{{am_fee14}}</span></div>
+							</div>
+							<span class="section">{{l_gear}}</span>
+							<div class="seg" id="aim.hire.gear">
+								<div class="o" id="aim.hire.gear.none" data-label="No Equipment" data-class-on="!hire_gear" data-event-click="aim_gear(0)"><span class="a">{{l_no_equipment}}</span><span class="b">$0</span></div>
+								<div class="o" id="aim.hire.gear.buy" data-label="Buy Equipment" data-class-on="hire_gear" data-event-click="aim_gear(1)"><span class="a">{{l_buy_equipment}}</span><span class="b">{{am_gear_cost}}</span></div>
+							</div>
+							<div class="vc-sum">
+								<div class="kv"><span class="k">{{l_fee}}</span><span class="v">{{hire_contract}}</span></div>
+								<div class="kv"><span class="k">{{l_equipment}}</span><span class="v">{{hire_equipment}}</span></div>
+								<div class="kv"><span class="k">{{l_medical}}</span><span class="v">{{hire_deposit}}</span></div>
+								<div class="kv total"><span class="k">{{l_contract_charge}}</span><span class="v" id="aim.hire.total">{{hire_total}}</span></div>
+								<div class="kv"><span class="k">{{l_balance_after}}</span><span class="v" data-class-danger-t="!hire_affordable">{{hire_after}}</span></div>
+							</div>
+						</div>
+						<div class="vc-act">
+							<button class="btn" id="aim.hire.cancel3" data-label="Cancel" data-event-click="aim_hangup"><span class="label">{{l_hangup}}</span><span class="kbd">Esc</span></button>
+							<button class="btn btn-primary" id="aim.hire.transfer" data-label="Transfer Funds" data-event-click="aim_transfer"><img class="icon" src="icon-money"/><span class="label">{{l_transfer}}</span></button>
+						</div>
+					</div>
+					<div class="vc-act" data-if="hire_state == 'hired' || hire_state == 'refused' || hire_state == 'unavailable' || hire_state == 'recorded'">
+						<button class="btn btn-primary" id="aim.hire.done" data-label="OK" data-event-click="aim_hangup"><img class="icon" src="icon-confirm"/><span class="label">OK</span></button>
+					</div>
+				</div>
+			</div>
+			<div class="site-body text" data-if="page == 'policies' || page == 'history' || page == 'alumni'" id="aim.text"><div class="prose"><p data-for="t : aim_text">{{t}}</p></div></div>
+			<div class="site-body" data-if="page == 'links'" id="aim.links"><div class="dk-sites"><div class="site-tile" data-for="b : bookmarks" data-attr-id="'aim.link.' + b.id" data-attr-class="'site-tile ' + b.cls" data-event-click="site(b.id)"><span class="t">{{b.title}}</span><span class="h">{{b.sub}}</span></div></div></div>
+		</div>
+
+		<!-- ------------------------------------------------ M.E.R.C. -->
+		<div class="merc" data-if="site == 'merc'">
+			<div class="site-head"><span class="wm">M.E.R.C.</span><span class="wm-sub">More Economic Recruiting Center</span><span class="grow"></span>
+				<div class="site-nav" data-if="page != 'broken'">
+					<span class="lk" id="merc.nav.files" data-class-on="page == 'home'" data-event-click="page('home')">{{l_files_tab}}</span>
+					<span class="lk" id="merc.nav.account" data-class-on="page == 'account'" data-event-click="page('account')">{{l_account}}</span>
+				</div></div>
+			<div class="site-body" data-if="page == 'broken'"><div class="prose"><p>{{l_broken_link}}</p></div></div>
+			<div class="site-body" data-if="page != 'broken'">
+				<div class="speck"><div class="vid" id="merc.speck"><div class="ph speck-ph audit-skip"></div></div>
+					<div class="bubble" id="merc.speck.says" data-if="speck != ''">&#8220;{{speck}}&#8221;</div>
+					<div class="acct" id="merc.account">
+						<div data-if="!merc_has_account"><p class="dim">{{l_merc_closed}}</p><button class="btn-site wide" id="merc.openaccount" data-label="Open Account" data-event-click="merc_open_account"><span>{{l_open_account}}</span></button></div>
+						<div data-if="merc_has_account"><span class="section">{{merc_account}}</span><div class="kv"><span class="k">{{l_owed}}</span><span class="v" id="merc.owed">{{merc_owed}}</span></div>
+							<button class="btn-site wide" id="merc.pay" data-label="Authorize" data-event-click="merc_pay"><img class="icon" src="icon-money"/><span>{{l_pay}}</span></button></div>
+					</div></div>
+				<div class="mfiles" id="merc.files" data-if="page == 'home'">
+					<div class="mrow" data-for="m : merc_files" data-attr-id="'merc.merc[' + m.id + ']'" data-attr-data-label="m.title" data-attr-class="'mrow ' + m.cls">
+						<div class="ph"><img data-attr-src="m.icon"/></div>
+						<div class="who"><span class="n">{{m.title}}</span><span class="d" data-attr-title="m.sub">{{m.sub}}</span></div>
+						<div class="sk"><div class="s"><span class="k">MRK</span><span class="v">{{m.n}}</span></div><div class="s"><span class="k">MED</span><span class="v">{{m.m}}</span></div><div class="s"><span class="k">MEC/EXP/LDR</span><span class="v">{{m.value}}</span></div></div>
+						<div class="pr"><span class="v">{{m.meta}}</span><span class="k">{{l_per_day}}</span></div>
+						<div class="act"><button class="btn-site" data-if="!m.alt &amp;&amp; merc_has_account" data-attr-id="'merc.hire[' + m.id + ']'" data-label="Hire" data-event-click="merc_hire(m.id)"><img class="icon" src="icon-add"/><span>{{l_hire}}</span></button><span class="tag" data-if="m.alt" data-class-ok="m.cls == 'hired'" data-class-danger="m.cls == 'dead'">{{m.cls == 'hired' ? l_on_team : m.cls == 'dead' ? l_deceased : l_unavailable}}</span></div>
+					</div>
+				</div>
+				<div class="mfiles" data-if="page == 'account'" id="merc.accountrows">
+					<div class="thead"><span class="th c-n"><span>Merc</span></span><span class="th c-w"><span>{{l_day}}</span></span><span class="th c-u"><span>{{l_fee}}</span></span><span class="th c-t"><span>{{l_owed}}</span></span></div>
+					<div class="tr" data-for="a : merc_account_rows"><span class="c-n">{{a.title}}</span><span class="c-w num">{{a.sub}}</span><span class="c-u num">{{a.meta}}</span><span class="c-t num">{{a.value}}</span></div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ------------------------------------------------ Bobby Ray's -->
+		<div class="bob" data-if="site == 'bobby'">
+			<div class="site-head"><span class="wm">Bobby Ray&#8217;s</span><span class="wm-sub">Guns &#8217;n Things</span><span class="grow"></span>
+				<div class="site-nav" data-if="page != 'closed'">
+					<span class="lk" id="bobby.nav.shop" data-class-on="page == 'shop'" data-event-click="page('shop')">{{l_shop}}</span>
+					<span class="lk" id="bobby.nav.order" data-class-on="page == 'order'" data-event-click="page('order')">{{l_order_form}}</span>
+					<span class="lk" id="bobby.nav.shipments" data-class-on="page == 'shipments'" data-event-click="page('shipments')">{{l_shipments}}</span>
+				</div></div>
+			<div class="site-body" data-if="page == 'closed'"><div class="prose"><p>{{l_bobby_closed}}</p></div></div>
+			<div data-if="page == 'shop'">
+				<div class="bob-cats"><div class="chip" data-for="c : bobby_cats" data-attr-id="'bobby.cat[' + c.index + ']'" data-attr-data-label="c.title" data-class-on="c.on" data-event-click="bobby_cat(c.index)"><span>{{c.title}}</span></div></div>
+				<div class="bob-main">
+					<div class="bob-list" id="bobby.items">
+						<div class="prod" data-for="p : shop" data-attr-id="'bobby.item[' + p.index + ']'" data-attr-data-label="p.title" data-class-in-cart="p.on">
+							<div class="pic"><img data-attr-src="'shop-item-' + p.id"/></div>
+							<div class="info"><span class="n" data-attr-title="p.title">{{p.title}}</span><div class="specs"><span class="s">{{p.value}}</span><span class="s">{{l_in_stock}} <span class="v">{{p.n}}</span></span><span class="s" data-if="p.extra != ''">{{p.extra}}</span></div><span class="desc" data-attr-title="p.sub">{{p.sub}}</span></div>
+							<div class="price"><span class="v">{{p.meta}}</span><span class="k">{{l_each}}</span></div>
+							<div class="qty"><button class="icon-btn" data-attr-id="'bobby.item[' + p.index + '].remove'" data-label="One less" title="One less" data-event-click="bobby_remove(p.index)"><img class="icon" src="icon-remove"/></button><span class="n">{{p.m}}</span><button class="icon-btn" data-attr-id="'bobby.item[' + p.index + '].add'" data-label="One more" title="One more" data-event-click="bobby_add(p.index)"><img class="icon" src="icon-add"/></button></div>
+						</div>
+						<div class="empty" data-if="shop_count == 0">{{l_no_items}}</div>
+					</div>
+					<div class="cart" id="bobby.cart"><div class="cart-head"><img class="icon" src="icon-cart"/><span class="t">{{l_cart}}</span><span class="dim">{{cart_count_text}}</span></div>
+						<div class="cline" data-for="c : cart"><span class="q">{{c.n}}&#215;</span><span class="n" data-attr-title="c.title">{{c.title}}</span><span class="p">{{c.value}}</span></div>
+						<div class="cart-foot"><div class="kv"><span class="k">{{l_subtotal}}</span><span class="v">{{cart_total}}</span></div><div class="kv"><span class="k">{{l_weight}}</span><span class="v">{{cart_weight}}</span></div>
+							<button class="btn-site wide" id="bobby.toorder" data-label="Order Form" data-event-click="page('order')"><img class="icon" src="icon-cart"/><span>{{l_order_form}}</span></button></div></div>
+				</div>
+			</div>
+			<div class="of" data-if="page == 'order'">
+				<div class="of-items">
+					<div class="thead"><span class="th c-q"><span>Qty</span></span><span class="th c-n"><span>Item</span></span><span class="th c-w"><span class="grow"></span><span>{{l_weight}}</span></span><span class="th c-u"><span class="grow"></span><span>{{l_each}}</span></span><span class="th c-t"><span class="grow"></span><span>{{l_subtotal}}</span></span><span class="th c-x"></span></div>
+					<div class="tr" data-for="l : order_lines" data-attr-id="'bobby.order.line[' + l.index + ']'">
+						<div class="c-q row"><button class="icon-btn" data-attr-id="'bobby.order.line[' + l.index + '].less'" title="One less" data-event-click="order_line(l.index, -1)"><img class="icon" src="icon-remove"/></button><span class="mono qn">{{l.n}}</span><button class="icon-btn" data-attr-id="'bobby.order.line[' + l.index + '].more'" title="One more" data-event-click="order_line(l.index, 1)"><img class="icon" src="icon-add"/></button></div>
+						<span class="c-n" data-attr-title="l.title">{{l.title}}</span><span class="c-w num">{{l.sub}}</span><span class="c-u num">{{l.meta}}</span><span class="c-t num">{{l.value}}</span>
+						<div class="c-x"><button class="icon-btn" data-attr-id="'bobby.order.line[' + l.index + '].remove'" title="Remove" data-event-click="order_remove(l.index)"><img class="icon" src="icon-close"/></button></div>
+					</div>
+					<div class="empty" data-if="cart_count == 0">{{l_no_items}}</div>
+					<div class="row of-act"><span class="dim grow">* {{l_used_note}}</span>
+						<button class="btn btn-ghost" id="bobby.order.clear" data-label="Clear Order" data-event-click="order_clear"><img class="icon" src="icon-remove"/><span class="label">{{l_clear_order}}</span></button>
+						<button class="btn" id="bobby.order.back" data-label="Back" data-event-click="page('shop')"><img class="icon" src="icon-chevron-left"/><span class="label">{{l_back_to_shop}}</span></button></div>
+				</div>
+				<div class="of-side">
+					<div class="panel pad"><span class="section">{{l_delivery}}</span>
+						<div class="dd" id="bobby.order.city" data-label="Delivery Location" data-event-click="order_city_menu"><span class="t">{{city_name}}</span><img class="icon" src="icon-chevron-down"/></div>
+						<div class="dd-list" data-if="city_open"><div class="dd-o" data-for="c : cities" data-attr-id="'bobby.order.city[' + c.index + ']'" data-attr-data-label="c.title" data-class-on="c.on" data-event-click="order_city(c.index)"><span>{{c.title}}</span></div></div>
+					</div>
+					<div class="panel pad" data-if="!city_open"><span class="section">{{l_speed}}</span>
+						<div class="radio" data-for="s : speeds" data-attr-id="'bobby.order.speed[' + s.index + ']'" data-attr-data-label="s.title" data-class-on="s.on" data-event-click="order_speed(s.index)"><span class="dot"></span><span class="t">{{s.title}}</span><span class="v">{{s.meta}}</span></div>
+					</div>
+					<div class="panel pad" id="bobby.order.totals" data-if="!city_open">
+						<div class="kv"><span class="k">{{l_subtotal}}</span><span class="v">{{order_subtotal}}</span></div>
+						<div class="kv"><span class="k">{{l_weight}}</span><span class="v">{{order_weight}}</span></div>
+						<div class="kv"><span class="k">{{l_shipping}}</span><span class="v">{{order_shipping}}</span></div>
+						<div class="kv total"><span class="k">{{l_grand_total}}</span><span class="v" id="bobby.order.total">{{order_total}}</span></div>
+						<button class="btn btn-primary wide" id="bobby.order.accept" data-label="Accept Order" data-class-is-disabled="!order_ready" data-event-click="order_accept"><img class="icon" src="icon-confirm"/><span class="label">{{l_accept_order}}</span></button>
+					</div>
+				</div>
+			</div>
+			<div class="site-body" data-if="page == 'shipments'" id="bobby.shipments">
+				<div class="mfiles"><div class="thead"><span class="th c-w"><span>{{l_day}}</span></span><span class="th c-n"><span>{{l_delivery}}</span></span><span class="th c-u"><span>Qty</span></span><span class="th c-t"><span>{{l_weight}}</span></span></div>
+					<div class="tr" data-for="s : shipments" data-attr-id="'bobby.shipment[' + s.index + ']'"><span class="c-w num">{{s.meta}}</span><span class="c-n">{{s.title}}</span><span class="c-u num">{{s.n}}</span><span class="c-t num">{{s.value}}</span></div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ------------------------------------------------ I.M.P. -->
+		<div class="imp" data-if="site == 'imp'">
+			<div class="site-head"><span class="wm">I.M.P.</span><span class="wm-sub">Institute for Mercenary Profiling</span><span class="grow"></span>
+				<button class="btn btn-ghost" data-if="page != 'home' &amp;&amp; page != 'about'" id="imp.cancel" data-label="Cancel" data-event-click="imp_step('home')"><img class="icon" src="icon-close"/><span class="label">{{l_hangup}}</span></button></div>
+			<div class="imp-steps" id="imp.steps" data-if="page != 'home' &amp;&amp; page != 'about' &amp;&amp; page != 'main' &amp;&amp; page != 'done'">
+				<div class="step" data-for="s : imp_steps" data-class-done="s.alt" data-class-on="s.on"><span class="n">{{s.index + 1}}</span><span>{{s.title}}</span></div></div>
+			<div class="quiz" data-if="page == 'home' || page == 'about'">
+				<div class="quiz-main prose"><p data-for="t : imp_text">{{t}}</p>
+					<div data-if="page == 'home'" class="row imp-code"><input type="text" class="field-input" id="imp.code.input" maxlength="10" data-value="imp_code"/><button class="btn btn-primary" id="imp.enter" data-label="Enter" data-event-click="imp_enter"><span class="label">{{l_imp_enter}}</span><span class="kbd">Enter</span></button>
+						<button class="btn" id="imp.about" data-label="About Us" data-event-click="imp_step('about')"><span class="label">{{l_imp_about}}</span></button></div>
+					<span class="danger-t" data-if="imp_error != ''">{{imp_error}}</span>
+					<button class="btn" data-if="page == 'about'" id="imp.about.back" data-event-click="imp_step('home')"><img class="icon" src="icon-chevron-left"/><span class="label">{{l_previous}}</span></button>
+				</div></div>
+			<div class="quiz" data-if="page == 'main'">
+				<div class="quiz-main prose"><p data-for="t : imp_text">{{t}}</p>
+					<p class="warn-t" data-if="!imp_can_create">{{l_imp_full}}</p>
+					<button class="btn btn-primary" id="imp.begin" data-label="Begin" data-if="imp_can_create" data-event-click="imp_step('begin')"><span class="label">{{l_imp_begin}}</span></button>
+					<span class="dim">{{l_imp_cost}}</span></div></div>
+			<div class="quiz" data-if="page == 'begin'">
+				<div class="quiz-main">
+					<span class="section">{{l_imp_name}}</span><input type="text" class="field-input imp-in" id="imp.name.input" maxlength="29" data-value="imp_full"/>
+					<span class="section">{{l_imp_nick}}</span><input type="text" class="field-input imp-in" id="imp.nick.input" maxlength="9" data-value="imp_nick"/>
+					<span class="section">{{l_imp_gender}}</span>
+					<div class="seg"><div class="o" id="imp.male" data-class-on="!imp_female" data-event-click="imp_gender('male')"><span class="a">{{l_imp_male}}</span></div><div class="o" id="imp.female" data-class-on="imp_female" data-event-click="imp_gender('female')"><span class="a">{{l_imp_female}}</span></div></div>
+					<div class="q-act"><span class="grow"></span><button class="btn btn-primary" id="imp.begin.next" data-label="Next" data-event-click="imp_step('personality')"><span class="label">{{l_next}}</span><img class="icon" src="icon-chevron-right"/></button></div>
+				</div></div>
+			<div class="quiz" data-if="page == 'personality'">
+				<div class="quiz-main">
+					<span class="q-no" id="imp.question.no">{{imp_question_no}}</span>
+					<div class="q-prog"><div class="p" data-for="p : imp_progress" data-class-done="p.alt" data-class-on="p.on" data-event-click="imp_question(p.index)"></div></div>
+					<span class="q-text" id="imp.question">{{imp_question_text}}</span>
+					<div id="imp.answers"><div class="ans" data-for="a : imp_answers" data-attr-id="'imp.answer[' + a.index + ']'" data-attr-data-label="a.title" data-class-on="a.on" data-event-click="imp_answer(a.index)"><span class="kbd">{{a.id}}</span><span class="t">{{a.title}}</span></div></div>
+					<div class="q-act">
+						<button class="btn" id="imp.prev" data-label="Previous" data-event-click="imp_question(imp_question - 1)"><img class="icon" src="icon-chevron-left"/><span class="label">{{l_previous}}</span></button>
+						<button class="btn btn-ghost" id="imp.restart" data-label="Start over" data-event-click="imp_restart"><img class="icon" src="icon-reload"/><span class="label">{{l_imp_restart}}</span></button>
+						<span class="grow"></span>
+						<button class="btn btn-primary" id="imp.confirm" data-label="Confirm" data-event-click="imp_confirm"><img class="icon" src="icon-confirm"/><span class="label">{{l_imp_confirm}}</span></button>
+					</div>
+				</div></div>
+			<div class="quiz" data-if="page == 'attributes'">
+				<div class="quiz-main">
+					<div class="row"><span class="section grow">{{l_attributes}}</span><span class="tag info" id="imp.bonus">{{l_imp_points}} {{imp_bonus}}</span></div>
+					<div class="srow imp-attr" data-for="a : imp_attrs" data-attr-id="'imp.attr[' + a.index + ']'"><span class="k">{{a.title}}</span>
+						<button class="icon-btn" data-attr-id="'imp.attr[' + a.index + '].less'" title="Less" data-event-click="imp_attr(a.index, -1)"><img class="icon" src="icon-remove"/></button>
+						<div class="bar"><div class="fill" data-style-width="a.m + '%'"></div></div>
+						<button class="icon-btn" data-attr-id="'imp.attr[' + a.index + '].more'" title="More" data-event-click="imp_attr(a.index, 1)"><img class="icon" src="icon-add"/></button><span class="v">{{a.value}}</span></div>
+					<div data-if="imp_skills.size &gt; 0"><span class="section">{{l_imp_pick_skills}}</span><div class="row wrap"><div class="chip" data-for="s : imp_skills" data-class-on="s.on" data-event-click="imp_skill(s.index)"><span>{{s.title}}</span></div></div></div>
+					<div class="q-act"><span class="grow"></span><button class="btn btn-primary" id="imp.attr.next" data-label="Next" data-event-click="imp_step('portrait')"><span class="label">{{l_next}}</span><img class="icon" src="icon-chevron-right"/></button></div>
+				</div></div>
+			<div class="quiz" data-if="page == 'portrait'">
+				<div class="quiz-main">
+					<div class="imp-faces" id="imp.portraits"><div class="iface" data-for="p : imp_portraits" data-attr-id="'imp.portrait[' + p.index + ']'" data-class-on="p.on" data-event-click="imp_portrait(p.index)"><img data-attr-src="p.icon"/></div></div>
+					<div class="q-act"><span class="grow"></span><button class="btn btn-primary" id="imp.portrait.next" data-label="Next" data-event-click="imp_step('voice')"><span class="label">{{l_next}}</span><img class="icon" src="icon-chevron-right"/></button></div>
+				</div></div>
+			<div class="quiz" data-if="page == 'voice'">
+				<div class="quiz-main">
+					<div class="ans" data-for="v : imp_voices" data-attr-id="'imp.voice[' + v.index + ']'" data-class-on="v.on" data-event-click="imp_voice(v.index)"><img class="icon" src="icon-play"/><span class="t">{{v.title}}</span></div>
+					<div class="q-act"><span class="grow"></span><button class="btn btn-primary" id="imp.voice.next" data-label="Next" data-event-click="imp_step('finish')"><span class="label">{{l_next}}</span><img class="icon" src="icon-chevron-right"/></button></div>
+				</div></div>
+			<div class="quiz" data-if="page == 'finish'">
+				<div class="quiz-main">
+					<div class="panel pad"><div class="kv"><span class="k">{{l_imp_name}}</span><span class="v">{{imp_full}}</span></div><div class="kv"><span class="k">{{l_imp_nick}}</span><span class="v">{{imp_nick}}</span></div><div class="kv"><span class="k">{{l_imp_gender}}</span><span class="v">{{imp_female ? l_imp_female : l_imp_male}}</span></div><div class="kv"><span class="k">{{l_imp_points}}</span><span class="v">{{imp_bonus}}</span></div></div>
+					<div class="q-act"><button class="btn" data-event-click="imp_step('personality')" id="imp.finish.back"><img class="icon" src="icon-chevron-left"/><span class="label">{{l_previous}}</span></button><span class="grow"></span><span class="dim">{{l_imp_cost}}</span>
+						<button class="btn btn-primary" id="imp.finish" data-label="Finish" data-event-click="imp_finish"><img class="icon" src="icon-confirm"/><span class="label">{{l_imp_finish}}</span></button></div>
+				</div></div>
+			<div class="quiz" data-if="page == 'done'"><div class="quiz-main prose"><p>{{l_imp_done}}</p></div></div>
+		</div>
+
+		<!-- ------------------------------------------------ florist -->
+		<div class="flo" data-if="site == 'florist'">
+			<div class="site-head"><span class="wm">United Floral Service</span><span class="grow"></span>
+				<div class="site-nav"><span class="lk" id="florist.nav.home" data-class-on="page == 'home'" data-event-click="page('home')">{{l_florist_gallery}}</span><span class="lk" id="florist.nav.order" data-class-on="page == 'order'" data-event-click="page('order')">{{l_order_form}}</span></div></div>
+			<div class="site-body" data-if="page == 'home'"><div class="flist" id="florist.gallery">
+				<div class="flower" data-for="f : flowers" data-attr-id="'florist.flower[' + f.index + ']'" data-attr-data-label="f.title" data-event-click="flower(f.index)"><span class="n">{{f.title}}</span><span class="p">{{f.meta}}</span><span class="d">{{f.sub}}</span></div></div></div>
+			<div class="of" data-if="page == 'order'">
+				<div class="of-items">
+					<span class="section">{{l_florist_gallery}}</span>
+					<div class="flower sel" data-for="f : flowers" data-if="f.on"><span class="n">{{f.title}}</span><span class="p">{{f.meta}}</span><span class="d">{{f.sub}}</span></div>
+					<span class="section">{{l_card_message}}</span><textarea class="field-input flo-msg" id="florist.message.input" maxlength="75" data-value="flower_message"></textarea>
+					<div class="row wrap"><div class="chip" data-for="c : florist_cards" data-attr-id="'florist.card[' + c.index + ']'" data-attr-title="c.title" data-event-click="flower_card(c.index)"><span>{{c.index + 1}}</span></div></div>
+					<span class="section">{{l_your_name}}</span><input type="text" class="field-input" id="florist.name.input" maxlength="35" data-value="flower_name"/>
+				</div>
+				<div class="of-side">
+					<div class="panel pad"><span class="section">{{l_flower_town}}</span><div class="dd-list open"><div class="dd-o" data-for="t : florist_towns" data-attr-id="'florist.town[' + t.index + ']'" data-class-on="t.on" data-event-click="flower_town(t.index)"><span>{{t.title}}</span></div></div></div>
+					<div class="panel pad"><div class="radio" id="florist.nextday" data-class-on="flower_next_day" data-event-click="flower_when(1)"><span class="dot"></span><span class="t">{{l_next_day}}</span></div><div class="radio" id="florist.whenever" data-class-on="!flower_next_day" data-event-click="flower_when(0)"><span class="dot"></span><span class="t">{{l_when_convenient}}</span></div>
+						<div class="kv total"><span class="k">{{l_grand_total}}</span><span class="v" id="florist.cost">{{flower_cost}}</span></div>
+						<button class="btn btn-primary wide" id="florist.send" data-label="Send" data-event-click="flower_send"><img class="icon" src="icon-confirm"/><span class="label">{{l_send_flowers}}</span></button></div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ------------------------------------------------ insurance -->
+		<div class="ins" data-if="site == 'insurance'">
+			<div class="site-head"><span class="wm">Malleus, Incus &amp; Stapes</span><span class="grow"></span>
+				<div class="site-nav"><span class="lk" id="insurance.nav.home" data-class-on="page == 'home'" data-event-click="page('home')">{{l_ins_home}}</span><span class="lk" id="insurance.nav.info" data-class-on="page == 'info'" data-event-click="page('info')">{{l_ins_info}}</span><span class="lk" id="insurance.nav.comments" data-class-on="page == 'comments'" data-event-click="page('comments')">{{l_ins_comments}}</span><span class="lk" id="insurance.nav.contract" data-class-on="page == 'contract'" data-event-click="page('contract')">{{l_ins_contract}}</span></div></div>
+			<div class="site-body"><div class="prose grow"><p data-for="t : insurance_text">{{t}}</p>
+				<div data-if="page == 'contract'" id="insurance.contract">
+					<div class="mrow" data-for="r : insurance_rows" data-attr-id="'insurance.merc[' + r.id + ']'" data-attr-data-label="r.title"><div class="ph"><img data-attr-src="r.icon"/></div><div class="who"><span class="n">{{r.title}}</span><span class="d">{{l_days_left}} {{r.sub}}</span></div><div class="pr"><span class="v">{{r.meta}}</span><span class="k">{{l_premium}}</span></div>
+						<div class="act"><span class="tag ok" data-if="r.on">{{l_insured}}</span><button class="btn-site" data-if="r.alt" data-attr-id="'insurance.insure[' + r.id + ']'" data-label="Accept" data-event-click="insure(r.id)"><span>{{l_insure}}</span></button></div></div>
+					<div class="empty" data-if="insurance_rows.size == 0">{{l_nothing}}</div>
+				</div></div></div>
+		</div>
+
+		<!-- ------------------------------------------------ mortuary -->
+		<div class="fun" data-if="site == 'funeral'">
+			<div class="site-head"><span class="wm">McGillicutty&#8217;s Mortuary</span></div>
+			<div class="site-body"><div class="prose"><p data-for="t : funeral_text">{{t}}</p><p class="dim">{{l_funeral_closed}}</p></div></div>
+		</div>
+
+		</div>
+	</div>
+
+	</div>
+</div>
+</body>
+</rml>

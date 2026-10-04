@@ -980,3 +980,84 @@ void InitFloristOrderForm()
 	gsSentimentTextField.clear();
 	gsNameTextField.clear();
 }
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+#include "EDT.h"
+#include <optional>
+extern std::optional<EDTFile> gFloristGalleryTexts; // Florist.cc
+extern std::optional<EDTFile> gCardStrings;
+
+namespace LaptopNative
+{
+
+static void OpenFloristTexts()
+{
+	if (!gFloristGalleryTexts) gFloristGalleryTexts = EDTFile(EDTFile::FLORIST_DESCRIPTIONS);
+	if (!gCardStrings) gCardStrings = EDTFile(EDTFile::FLORIST_CARDS);
+}
+
+std::vector<Flower> Flowers()
+{
+	OpenFloristTexts();
+	std::vector<Flower> r;
+	for (int i = 0; i < 10; ++i)
+	{
+		ST::string const name = GetFloristGalleryText(i, 0);
+		if (name.empty()) break;
+		ST::string const price = GetFloristGalleryText(i, 1);
+		UINT16 p = 0;
+		sscanf(price.c_str(), "%hu", &p);
+		r.push_back({ i, name, price, GetFloristGalleryText(i, 2), p });
+	}
+	return r;
+}
+
+std::vector<ST::string> FloristCards()
+{
+	OpenFloristTexts();
+	std::vector<ST::string> r;
+	for (int i = 0; i < 9; ++i) { try { r.push_back(GetFloristCardString(i)); } catch (...) { break; } }
+	return r;
+}
+
+std::vector<ST::string> FloristTowns()
+{
+	std::vector<ST::string> r;
+	for (auto const* d : GCM->getShippingDestinations()) r.push_back(d->name);
+	return r;
+}
+
+INT32 FlowerOrderCost(FlowerOrder const& o)
+{
+	// DisplayFloristCheckBox's price: the bouquet and the delivery to the town (no extras)
+	auto const flowers = Flowers();
+	if (o.flower < 0 || o.flower >= int(flowers.size())) return 0;
+	auto const& dests = GCM->getShippingDestinations();
+	if (o.town < 0 || o.town >= int(dests.size())) return 0;
+	auto const* d = dests[o.town];
+	return flowers[o.flower].cost + (o.nextDay ? d->flowersNextDayDeliveryCost : d->flowersWhenItGetsThereCost);
+}
+
+bool SendFlowers(FlowerOrder const& o)
+{
+	INT32 const cost = FlowerOrderCost(o);
+	if (cost <= 0 || LaptopSaveInfo.iCurrentBalance < cost) return false;
+	// BtnFlowerOrderSendButtonCallback
+	AddTransactionToPlayersBook(PURCHASED_FLOWERS, 0, GetWorldTotalMin(), -cost);
+	auto const* destination = GCM->getShippingDestinations()[o.town];
+	if (GetTownIdForSector(destination->getDeliverySector()) == MEDUNA) HandleFlowersMeanwhileScene(o.nextDay ? 0 : 1);
+	LaptopSaveInfo.uiFlowerOrderNumber += 1 + Random(2);
+	return true;
+}
+
+std::vector<ST::string> FuneralText()
+{
+	std::vector<ST::string> r;
+	for (int i = FUNERAL_INTRO_1; i <= FUNERAL_OUR_SYMPATHIES; ++i) r.push_back(sFuneralString[i]);
+	return r;
+}
+
+}

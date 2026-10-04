@@ -1013,3 +1013,45 @@ void AddFilesAboutTerrorists()
 		AddFilesToPlayersLog(i);
 	}
 }
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+namespace LaptopNative
+{
+
+std::vector<FileInfo> Files()
+{
+	if (!fInFilesMode) OpenAndReadFilesFile();
+	std::vector<FileInfo> r;
+	int i = 0;
+	for (FilesUnit const* f = pFilesListHead; f; f = f->Next, ++i) r.push_back({ i, pFilesSenderList[f->ubCode], f->fRead != FALSE });
+	return r;
+}
+
+std::vector<ST::string> OpenFile(int const index)
+{
+	if (!fInFilesMode) OpenAndReadFilesFile();
+	FilesUnit* f = pFilesListHead;
+	for (int i = 0; f && i < index; ++i) f = f->Next;
+	std::vector<ST::string> r;
+	if (!f) return r;
+	f->fRead = TRUE;
+	AutoStringList const head(f->ubCode == ENRICO_BACKGROUND ?
+		LoadStringsIntoFileList(BINARYDATADIR "/ris.edt", 0, LENGTH_OF_ENRICO_FILE) :
+		LoadStringsIntoFileList(BINARYDATADIR "/files.edt", g_file_info[f->ubCode].file_offset, SLAY_LENGTH));
+	for (FileString const* s = head; s; s = s->Next) if (!s->pString.empty()) r.push_back(s->pString);
+	CheckForUnreadFiles();
+	if (!fInFilesMode) OpenAndWriteFilesFile();
+	return r;
+}
+
+int UnreadFiles()
+{
+	int n = 0;
+	for (FileInfo const& f : Files()) if (!f.read) ++n;
+	return n;
+}
+
+}

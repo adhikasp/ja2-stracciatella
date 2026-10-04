@@ -287,3 +287,56 @@ static void OffSetQuestionForFemaleSpecificQuestions(INT32* iCurrentOffset)
 
 	*iCurrentOffset = IMP_CON_3 - IMP_QUESTION_1 + 3 + iExtraOffSet;
 }
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+namespace LaptopNative
+{
+
+static ST::string ImpRecord(INT32 const i)
+{
+	if (!gImpText) OpenIMPTexts();
+	try { return gImpText->at(i, 0); } catch (...) { return {}; }
+}
+
+std::vector<ImpQuestion> ImpQuiz(bool const female)
+{
+	// PrintIMPPersonalityQuizQuestionAndAnswers for every question
+	std::vector<ImpQuestion> r;
+	BOOLEAN const keepMale = fCharacterIsMale;
+	INT32 const keepQ = giCurrentPersonalityQuizQuestion;
+	fCharacterIsMale = !female;
+	for (INT32 q = 0; q < 16; ++q)
+	{
+		INT32 offset = 0;
+		for (INT32 i = 0; i < q; ++i) offset += iIMPQuestionLengths[i];
+		giCurrentPersonalityQuizQuestion = q;
+		if (female) OffSetQuestionForFemaleSpecificQuestions(&offset);
+		INT32 const n = iIMPQuestionLengths[q];
+		ImpQuestion question;
+		question.text = ImpRecord(IMP_QUESTION_1 + offset);
+		for (INT32 a = 0; a < n - 1; ++a) question.answers.push_back(ImpRecord(IMP_QUESTION_1 + offset + 1 + a));
+		r.push_back(std::move(question));
+	}
+	fCharacterIsMale = keepMale;
+	giCurrentPersonalityQuizQuestion = keepQ;
+	return r;
+}
+
+std::vector<ST::string> ImpPageText(int const page)
+{
+	static INT32 const first[] = { IMP_HOME_1, IMP_ABOUT_US_1, IMP_MAIN_1, IMP_BEGIN_1, IMP_PERS_1, IMP_ATTRIB_1, IMP_POR_1, IMP_VOC_1, IMP_FIN_1 };
+	static INT32 const last[]  = { IMP_HOME_10, IMP_ABOUT_US_12, IMP_MAIN_9, IMP_BEGIN_11, IMP_PERS_12, IMP_ATTRIB_8, IMP_POR_7, IMP_VOC_7, IMP_FIN_10 };
+	std::vector<ST::string> r;
+	if (page < 0 || page >= int(std::size(first))) return r;
+	for (INT32 i = first[page]; i <= last[page]; ++i)
+	{
+		ST::string const t = ImpRecord(i);
+		if (!t.empty()) r.push_back(t);
+	}
+	return r;
+}
+
+}

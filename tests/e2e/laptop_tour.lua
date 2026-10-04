@@ -4,6 +4,21 @@ local campaign = require("lib.campaign")
 
 campaign.newGame()
 
+-- The native laptop (1280x720 and larger): every program opens by id; laptop_parity.lua goes deeper.
+if campaign.nativeLaptop() then
+	for _, a in ipairs{"files", "history", "personnel", "finances", "email", "web"} do
+		ja2.click{id = "laptop.app." .. a}
+		ja2.waitIdle()
+		ja2.expect(ja2.viewModel("laptop").app == a, a .. " opens")
+	end
+	ja2.expect(ja2.viewModel("laptop").balance == "$45,000", "the balance is $45,000")
+	shots.take("laptop.png", true)
+	ja2.click{id = "laptop.close"}
+	ja2.waitScreen("MAP_SCREEN")
+	ja2.expect(#ja2.state().mercs == 0 and ja2.state().money == 45000, "no mercs hired and no money spent")
+	return
+end
+
 local function open(program, expected)
 	ja2.click{text = program, exact = true, within = campaign.std{x = 0, y = 0, w = 110, h = 480}}
 	ja2.waitIdle()

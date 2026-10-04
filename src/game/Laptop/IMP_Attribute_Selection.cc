@@ -795,3 +795,24 @@ static void StatAtZeroBoxCallBack(MessageBoxReturnValue const bExitValue)
 			break;
 	}
 }
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+void ImpNativeSetAttributes(int const (&a)[10])
+{
+	// the slider values, then SetGeneratedCharacterAttributes as the attribute finish page does
+	iCurrentHealth = a[0]; iCurrentAgility = a[1]; iCurrentDexterity = a[2]; iCurrentStrength = a[3];
+	iCurrentLeaderShip = a[4]; iCurrentWisdom = a[5]; iCurrentMarksmanship = a[6]; iCurrentMedical = a[7];
+	iCurrentMechanical = a[8]; iCurrentExplosives = a[9];
+	SetGeneratedCharacterAttributes();
+}
+
+namespace LaptopNative
+{
+int ImpAttributeMin() { return MIN_ATTRIBUTE_POINTS; }
+int ImpAttributeMax() { return MAX_ATTRIBUTE_POINTS; }
+int ImpAttributeZeroValue() { return ZERO_ATTRIBUTE_POINTS_VALUE; }
+int ImpBonusPoints() { return BONUS_ATTRIBUTE_POINTS; }
+}

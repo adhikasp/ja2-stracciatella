@@ -430,3 +430,24 @@ UINT32	CalculateHowMuchPlayerOwesSpeck()
 
 	return( uiContractCharge );
 }
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+namespace LaptopNative
+{
+
+UINT32 MercOwed() { return CalculateHowMuchPlayerOwesSpeck(); }
+
+bool MercPay()
+{
+	if (CalculateHowMuchPlayerOwesSpeck() == 0) return true;
+	gfMercPlayerDoesntHaveEnoughMoney_DisplayWarning = FALSE;
+	SettleMercAccounts();
+	bool const ok = !gfMercPlayerDoesntHaveEnoughMoney_DisplayWarning;
+	gfMercPlayerDoesntHaveEnoughMoney_DisplayWarning = FALSE;
+	return ok;
+}
+
+}

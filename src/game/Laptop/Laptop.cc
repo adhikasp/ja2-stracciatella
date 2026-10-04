@@ -83,6 +83,7 @@
 #include "UILayout.h"
 
 #include "policy/GamePolicy.h"
+#include "LaptopNative.h"
 
 #include <string_theory/format>
 #include <string_theory/string>
@@ -551,6 +552,13 @@ static void ExitLaptopMode(LaptopMode uiMode);
 
 void ExitLaptop(void)
 {
+	if (LaptopNative::Active())
+	{
+		// the native laptop leaves with its screen (LaptopNative::Exit from its Exit); a message box over it, or a
+		// video mode change that keeps it, are not exits
+		return;
+	}
+
 	// exit is called due to message box, leave
 	if (fExitDueToMessageBox)
 	{
@@ -3490,3 +3498,115 @@ TEST(Laptop, asserts)
 }
 
 #endif
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+namespace LaptopNative
+{
+
+static bool g_active = false;
+
+bool Active() { return g_active; }
+
+void Enter()
+{
+	// the video mode changed from one that runs the legacy laptop: take that one down first
+	if (!g_active && !gfEnterLapTop) ExitLaptop();
+	g_active = true;
+	fExitDueToMessageBox = FALSE;
+	if (gRadarRegion.uiFlags & MSYS_REGION_ENABLED) gRadarRegion.Disable();
+	gfDontStartTransitionFromLaptop = FALSE;
+	DisableScrollMessages();
+	StopAnyCurrentlyTalkingSpeech();
+	SetMusicMode(MUSIC_LAPTOP);
+	StopAmbients();
+	if (IsItRaining())
+	{
+		giRainDelayInternetSite = -1;
+		guiRainLoop = PlayJA2Ambient(RAIN_1, LOWVOLUME, 0);
+	}
+	PauseGame();
+	fCurrentlyInLaptop = TRUE;
+	giCurrentSubPage = 0;
+	guiCurrentLaptopMode  = LAPTOP_MODE_NONE;
+	guiPreviousLaptopMode = LAPTOP_MODE_NONE;
+	guiCurrentWWWMode     = LAPTOP_MODE_NONE;
+	fFirstTimeInLaptop = TRUE;
+	std::fill(std::begin(LaptopSaveInfo.fVisitedBookmarkAlready), std::end(LaptopSaveInfo.fVisitedBookmarkAlready), 0);
+	fExitingLaptopFlag = FALSE;
+	gfShowBookmarks = FALSE;
+	SetBookMark(AIM_BOOKMARK);
+	EnterLaptopInitLaptopPages();
+	InitalizeSubSitesList();
+	gfEnterLapTop = FALSE;
+	gfStartMapScreenToLaptopTransition = FALSE;
+}
+
+ScreenID Leave()
+{
+	HandleExit(); // a new game without an I.M.P. character: the reminder mail
+	SetLaptopExitScreen(MAP_SCREEN);
+	if (gfAtLeastOneMercWasHired && LaptopSaveInfo.gfNewGameLaptop) LaptopSaveInfo.gfNewGameLaptop = FALSE;
+	gfDontStartTransitionFromLaptop = TRUE;
+	fExitingLaptopFlag = TRUE;
+	return guiExitScreen;
+}
+
+void Exit()
+{
+	if (!g_active) return;
+	if (DidGameJustStart()) SetMusicMode(MUSIC_LAPTOP);
+	else SetMusicMode(MUSIC_RESTORE);
+	BuildDayAmbientSounds();
+	if (IsItRaining()) guiRainLoop = PlayJA2Ambient(RAIN_1, MIDVOLUME, 0);
+	FreeMouseCursor();
+	fCurrentlyInLaptop = FALSE;
+	SetRenderFlags(RENDER_FLAG_FULL);
+	fNewMailFlag = FALSE;
+	MailToDelete = NULL;
+	gfEnterLapTop = TRUE;
+	gfShowBookmarks = FALSE;
+	fNewWWW = TRUE;
+	fLoadPendingFlag = FALSE;
+	fExitingLaptopFlag = FALSE;
+	guiCurrentLaptopMode = LAPTOP_MODE_NONE;
+	UnPauseGame();
+	g_active = false;
+	fExitDueToMessageBox = FALSE;
+}
+
+void SetMode(int const mode)
+{
+	// no legacy frame runs to catch the previous mode up: both are the page shown (LaptopIsBusy compares them)
+	guiPreviousLaptopMode = guiCurrentLaptopMode = LaptopMode(mode);
+	if (mode > LAPTOP_MODE_WWW) guiCurrentWWWMode = LaptopMode(mode);
+}
+
+int Mode() { return guiCurrentLaptopMode; }
+
+std::vector<int> Bookmarks()
+{
+	std::vector<int> r;
+	for (INT32 i = 0; i < MAX_BOOKMARKS && LaptopSaveInfo.iBookMarkList[i] != -1; ++i) r.push_back(LaptopSaveInfo.iBookMarkList[i]);
+	return r;
+}
+
+bool VisitSite(int const bookmark)
+{
+	bool const first = !LaptopSaveInfo.fVisitedBookmarkAlready[bookmark];
+	LaptopSaveInfo.fVisitedBookmarkAlready[bookmark] = TRUE;
+	return first;
+}
+
+bool IsRaining() { return IsItRaining(); }
+
+bool MercSiteDown()
+{
+	return LaptopSaveInfo.fMercSiteHasGoneDownYet && !LaptopSaveInfo.fFirstVisitSinceServerWentDown;
+}
+
+bool BobbyRayOpen() { return LaptopSaveInfo.fBobbyRSiteCanBeAccessed; }
+
+}

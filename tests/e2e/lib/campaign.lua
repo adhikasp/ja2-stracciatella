@@ -10,6 +10,20 @@ function campaign.std(r)
 	return {x = r.x + s.stdX, y = r.y + s.stdY, w = r.w, h = r.h}
 end
 
+-- True while the native laptop is up (a screen with ui_mode native, 1280x720 and larger).
+function campaign.nativeLaptop()
+	return ja2.state().screen == "LAPTOP_SCREEN" and ja2.nativeUi().screen == "laptop"
+end
+
+-- The number of mercs the laptop shows (the legacy "Mercs: N" under Personnel, or the native system bar).
+function campaign.laptopMercs()
+	if campaign.nativeLaptop() then return tonumber(ja2.viewModel("laptop").team) end
+	for n = 0, 18 do
+		if ja2.exists("Mercs: " .. n) then return n end
+	end
+	return nil
+end
+
 -- Close the first-visit help overlay (ticking "don't show again") if it is up.
 function campaign.dismissHelp()
 	ja2.waitIdle()
@@ -50,6 +64,39 @@ end
 -- In the laptop: hire an A.I.M. merc by the name shown under their portrait.
 -- With equipment = true the merc brings his A.I.M. gear ("Buy Equipment").
 function campaign.hireFromAim(name, contract, equipment)
+	if campaign.nativeLaptop() then
+		-- the native laptop (docs/ui/laptop.md): the A.I.M. members grid, the member page, the docked hire panel
+		ja2.click{id = "laptop.app.web"}
+		ja2.waitIdle()
+		-- a previous hire leaves the site on that merc's member page: go back to the grid first
+		ja2.click{id = "aim.nav.members"}
+		ja2.waitIdle()
+		-- the grid is sorted by price and scrolls; a merc below the fold is not clickable, so
+		-- scroll back to the top and down until their card is in view
+		local sz = ja2.screenSize()
+		local wx, wy = math.floor(sz.w * 0.62), math.floor(sz.h * 0.55)
+		ja2.wheel(60, wx, wy)
+		ja2.waitIdle()
+		for _ = 1, 40 do
+			if ja2.exists{text = name, exact = true} then break end
+			ja2.wheel(-3, wx, wy)
+			ja2.waitIdle()
+		end
+		ja2.click{text = name, exact = true}
+		ja2.waitIdle()
+		ja2.click{id = "aim.contact"}
+		ja2.waitFor{id = "aim.hire.tohire"}
+		ja2.click{id = "aim.hire.tohire"}
+		ja2.waitIdle()
+		ja2.click{text = contract or "One Week", exact = true}
+		ja2.click{id = equipment and "aim.hire.gear.buy" or "aim.hire.gear.none"}
+		ja2.click{id = "aim.hire.transfer"}
+		ja2.waitFor{id = "aim.hire.done"}
+		ja2.click{id = "aim.hire.done"}
+		ja2.waitIdle()
+		campaign.acceptMessageBox("should arrive")
+		return
+	end
 	ja2.click("Web")
 	ja2.waitIdle()
 	ja2.click("A.I.M.")

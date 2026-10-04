@@ -135,6 +135,7 @@ namespace
 			nui::SetImageProvider(ProvideGameImage);
 			RegisterFrontEndImages();
 			RegisterTacticalMockImages();
+			RegisterLaptopImages();
 			m_doc = LoadDocument(m_path);
 			PrepareMockDocument(m_doc);
 			m_doc->Show(Rml::ModalFlag::None, Rml::FocusFlag::Document);

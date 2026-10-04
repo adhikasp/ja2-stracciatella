@@ -75,6 +75,7 @@ namespace
 		{ MAP_SCREEN,               "mapscreen", &CreateMapScreen },
 		{ AUTORESOLVE_SCREEN,       "autoresolve", &CreateAutoResolveScreen },
 		{ SHOPKEEPER_SCREEN,        "shopkeeper",  &CreateShopKeeperScreen },
+		{ LAPTOP_SCREEN,            "laptop",   &CreateLaptopScreen },
 	};
 
 	class Runtime final : public VideoOverlay

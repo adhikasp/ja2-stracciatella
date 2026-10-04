@@ -56,7 +56,7 @@ campaign.dismissLaptopPopups()
 for _, mode in ipairs(MODES) do
 	switch(mode, "laptop")
 	ja2.expect(ja2.screen() == "LAPTOP_SCREEN", mode.name .. ": still in the laptop")
-	ja2.expect(ja2.exists("Mercs: 1"), mode.name .. ": the laptop counts one merc")
+	ja2.expect(campaign.laptopMercs() == 1, mode.name .. ": the laptop counts one merc")
 end
 ja2.click("Shut Down")
 ja2.waitScreen("MAP_SCREEN")

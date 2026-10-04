@@ -21,6 +21,12 @@ ja2.waitScreen("MAINMENU_SCREEN")
 -- Laptop: every program, A.I.M., then hire and land
 campaign.newGame()
 local function open(program)
+	if campaign.nativeLaptop() then
+		local ids = { Files = "files", History = "history", Personnel = "personnel", Financial = "finances", ["E-mail"] = "email" }
+		ja2.click{id = "laptop.app." .. ids[program]}
+		ja2.waitIdle()
+		return
+	end
 	ja2.click{text = program, exact = true, within = campaign.std{x = 0, y = 0, w = 110, h = 480}}
 	ja2.waitIdle()
 end

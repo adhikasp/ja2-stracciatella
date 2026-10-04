@@ -86,7 +86,7 @@ body { width: 100%; height: 100%; background-color: var(--c-void); }
 
 /* icons page */
 .g-icons { display: flex; flex-wrap: wrap; }
-.g-icon { display: block; width: 116dp; height: 54dp; text-align: center; }
+.g-icon { display: block; width: 104dp; height: 52dp; text-align: center; }
 .g-icon .icon { margin-top: 2dp; }
 .g-icon-name { display: block; margin-top: 2dp; font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--c-text-faint); white-space: nowrap; overflow: hidden; }
 

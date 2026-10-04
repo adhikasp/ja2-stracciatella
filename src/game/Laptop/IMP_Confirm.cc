@@ -7,6 +7,8 @@
 #include "Cursors.h"
 #include "Laptop.h"
 #include "IMP_Compile_Character.h"
+#include "Sound_Control.h"
+extern INT32 iCurrentVoices; // IMP_Voices.cc
 #include "IMP_Text_System.h"
 #include "IMP_Confirm.h"
 #include "Items.h"
@@ -291,4 +293,103 @@ void ResetIMPCharactersEyesAndMouthOffsets(const UINT8 ubMercProfileID)
 	p.usEyesY  = portrait.eyesY;
 	p.usMouthX = portrait.mouthX;
 	p.usMouthY = portrait.mouthY;
+}
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+#include "IMP_Compile_Character.h"
+#include "Sound_Control.h"
+extern INT32 iCurrentVoices; // IMP_Voices.cc
+
+void ImpNativeCompileQuiz(std::vector<int> const& answers); // IMP_Personality_Quiz.cc
+void ImpNativeSetAttributes(int const (&attrs)[10]);       // IMP_Attribute_Selection.cc
+
+namespace LaptopNative
+{
+
+bool ImpCanCreate() { return CanCreateAnotherIMPCharacter(); }
+bool ImpCodeValid(ST::string const& code) { return GCM->getIMPPolicy()->isCodeAccepted(code); }
+int  ImpCost() { return COST_OF_PROFILE; }
+bool ImpPicksSkillsDirectly() { return gamepolicy(imp_pick_skills_directly); }
+
+std::vector<ImpPortrait> ImpPortraits(bool const female)
+{
+	std::vector<ImpPortrait> r;
+	for (INT32 i = 0; i < GetNumberOfIMPPortraits(!female); ++i)
+	{
+		INT32 const idx = GetIMPPortraitIndex(!female, i);
+		r.push_back({ i, GetIMPPortraits()[idx].face, female });
+	}
+	return r;
+}
+
+std::vector<ImpVoice> ImpVoices(bool const female)
+{
+	std::vector<ImpVoice> r;
+	for (INT32 i = 0; i < GetNumberOfIMPVoices(!female); ++i)
+	{
+		INT32 const idx = GetIMPVoiceIndex(!female, i);
+		r.push_back({ i, GetIMPVoices()[idx].profile, female });
+	}
+	return r;
+}
+
+void ImpPlayVoice(int const nth)
+{
+	INT32 const idx = GetIMPVoiceIndex(fCharacterIsMale, nth);
+	if (idx < 0) return;
+	ST::string const file = ST::format(SPEECHDIR "/{03d}_001.wav", GetIMPVoices()[idx].profile);
+	PlayJA2SampleFromFile(file.c_str(), MIDVOLUME, 1, MIDDLEPAN);
+}
+
+std::vector<ST::string> ImpSkillNames()
+{
+	std::vector<ST::string> r;
+	for (int i = 0; i < NUM_SKILLTRAITS; ++i) r.push_back(gzMercSkillText[i]);
+	return r;
+}
+
+ImpResult ImpCreate(ImpChoices const& c)
+{
+	// the I.M.P. flow from Begin to Confirm, with the choices made on the native pages
+	if (!CanCreateAnotherIMPCharacter()) return ImpResult::Invalid;
+	if (c.fullName.empty() || c.nickName.empty()) return ImpResult::Invalid;
+	if (LaptopSaveInfo.iCurrentBalance < COST_OF_PROFILE) return ImpResult::NoFunds;
+
+	ResetSkillsAttributesAndPersonality();
+	pFullName = c.fullName;
+	pNickName = c.nickName;
+	fCharacterIsMale = !c.female;
+	if (gamepolicy(imp_pick_skills_directly))
+	{
+		for (int const s : c.skills) AddSkillToSkillList(INT8(s));
+	}
+	else
+	{
+		ImpNativeCompileQuiz(c.answers); // CompileQuestionsInStatsAndWhatNot, at the end of the quiz
+	}
+	CreatePlayersPersonalitySkillsAndAttitude(); // the personality finish page
+	ImpNativeSetAttributes(c.attrs);             // the attribute finish page
+	iPortraitNumber = GetIMPPortraitIndex(fCharacterIsMale, c.portrait);
+	iCurrentVoices = c.voice;
+	LaptopSaveInfo.iVoiceId = GetIMPVoiceIndex(fCharacterIsMale, c.voice);
+	CreateACharacterFromPlayerEnteredStats(); // the finish page's Done
+
+	// BtnIMPConfirmYes
+	ProfileID const profile = GetIMPSlotInProgress();
+	if (!AddCharacterToPlayersTeam()) return ImpResult::Invalid;
+	MarkIMPCharacterCreated(profile);
+	AddTransactionToPlayersBook(IMP_PROFILE, profile, GetWorldTotalMin(), -COST_OF_PROFILE);
+	AddHistoryToPlayersLog(HISTORY_CHARACTER_GENERATED, 0, GetWorldTotalMin(), SGPSector(-1, -1));
+	iCurrentImpPage = IMP_HOME_PAGE;
+	if (GCM->getIMPPolicy()->sendsProfileResultsEmail())
+	{
+		AddFutureDayStrategicEvent(EVENT_DAY2_ADD_EMAIL_FROM_IMP, 60 * 7, profile, 2);
+	}
+	ResetCharacterStats();
+	LaptopSaveInfo.sLastHiredMerc.iIdOfMerc = -1;
+	return ImpResult::Created;
+}
+
 }

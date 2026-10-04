@@ -1100,6 +1100,13 @@ namespace
 					RemoveRoomRoof(UINT16(a->as<int>()), room, nullptr);
 					SetRenderFlags(RENDER_FLAG_FULL);
 				}
+				else if (what == "bookmarks")
+				{
+					// Test aid: every web bookmark set and Bobby Ray's open, as later in a campaign, so that a script
+					// can visit every site of the laptop from a new game.
+					for (INT32 b = AIM_BOOKMARK; b < CANCEL_STRING; ++b) SetBookMark(b);
+					LaptopSaveInfo.fBobbyRSiteCanBeAccessed = TRUE;
+				}
 				else if (what == "mock")
 				{
 					// M2 design mock through the native runtime: ja2.debug("mock", "phase3/mainmenu") shows

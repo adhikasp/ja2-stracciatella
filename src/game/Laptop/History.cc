@@ -778,3 +778,28 @@ static INT32 GetNumberOfHistoryPages(void)
 
 	return (uiFileSize / SIZE_OF_HISTORY_FILE_RECORD + NUM_RECORDS_PER_PAGE - 1) / NUM_RECORDS_PER_PAGE;
 }
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+namespace LaptopNative
+{
+
+std::vector<HistoryRow> History()
+{
+	std::vector<HistoryRow> r;
+	if (!GCM->tempFiles()->exists(HISTORY_DATA_FILE)) return r;
+	OpenAndReadHistoryFile();
+	for (HistoryUnit const* h = pHistoryListHead; h; h = h->Next)
+	{
+		bool const open = h->ubCode == HISTORY_CHEAT_ENABLED ||
+			(h->ubCode == HISTORY_QUEST_STARTED && gubQuest[h->ubSecondCode] == QUESTINPROGRESS);
+		r.push_back({ h->uiDate, h->sSector.IsValid() ? GetSectorIDString(h->sSector, TRUE) : ST::string(pHistoryLocations),
+			ProcessHistoryTransactionString(h), open });
+	}
+	ClearHistoryList();
+	return r;
+}
+
+}

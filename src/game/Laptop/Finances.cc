@@ -1289,3 +1289,52 @@ static INT32 GetYesterdaysDebits(void)
 
 	return( GetTodaysBalance( ) - GetPreviousDaysBalance( ) - GetPreviousDaysIncome( ) - GetYesterdaysOtherDeposits( ) );
 }
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+namespace LaptopNative
+{
+
+std::vector<FinanceRow> Transactions()
+{
+	std::vector<FinanceRow> r;
+	if (!GCM->tempFiles()->exists(FINANCES_DATA_FILE)) return r;
+	AutoSGPFile f(GCM->tempFiles()->openForReading(FINANCES_DATA_FILE));
+	UINT32 const size = f->size();
+	if (size < FINANCE_HEADER_SIZE) return r;
+	f->seek(FINANCE_HEADER_SIZE, FILE_SEEK_FROM_START);
+	for (UINT32 n = (size - FINANCE_HEADER_SIZE) / FINANCE_RECORD_SIZE; n > 0; --n)
+	{
+		BYTE data[FINANCE_RECORD_SIZE];
+		f->read(data, sizeof(data));
+		FinanceUnit u{};
+		DataReader d{data};
+		EXTR_U8(d, u.ubCode);
+		EXTR_U8(d, u.ubSecondCode);
+		EXTR_U32(d, u.uiDate);
+		EXTR_I32(d, u.iAmount);
+		EXTR_I32(d, u.iBalanceToDate);
+		r.push_back({ u.uiDate, ProcessTransactionString(&u), u.iAmount, u.iBalanceToDate });
+	}
+	return r;
+}
+
+FinanceSummary Summary()
+{
+	FinanceSummary s{};
+	s.yesterdayIncome  = GetPreviousDaysIncome();
+	s.yesterdayOther   = GetYesterdaysOtherDeposits();
+	s.yesterdayDebits  = GetYesterdaysDebits();
+	s.yesterdayBalance = GetTodaysBalance();
+	s.todayIncome      = GetTodaysDaysIncome();
+	s.todayOther       = GetTodaysOtherDeposits();
+	s.todayDebits      = GetTodaysDebits();
+	s.balance          = GetCurrentBalance();
+	s.forecastIncome   = GetProjectedTotalDailyIncome();
+	s.projectedBalance = s.balance + s.forecastIncome;
+	return s;
+}
+
+}

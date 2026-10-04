@@ -476,3 +476,21 @@ static void EnableDisableMercFilesNextPreviousButton(void)
 	EnableButton(guiNextButton, gubCurMercIndex <= LaptopSaveInfo.gubLastMercIndex - 1);
 	EnableButton(guiPrevButton, gubCurMercIndex > 0);
 }
+
+
+// ---- the native laptop (Phase 6, LaptopNative.h) ---------------------------------------------------------------
+#include "LaptopNative.h"
+
+namespace LaptopNative
+{
+
+bool MercHire(ProfileID const pid)
+{
+	// BtnMercHireButtonCallback: a suspended account cannot hire; otherwise MercFilesHireMerc
+	if (LaptopSaveInfo.gubPlayersMercAccountStatus == MERC_ACCOUNT_SUSPENDED) return false;
+	if (!MercFilesHireMerc(pid)) return false;
+	gfJustHiredAMercMerc = TRUE;
+	return true;
+}
+
+}
