@@ -187,6 +187,7 @@ namespace
 		}
 		else
 		{
+			out += "<span class=\"pile\">" + Escape(Str("tac.ovh.pile")) + "</span>";
 			for (HoverRow const& r : h.rows)
 			{
 				out += "<span class=\"pile\">" + Escape(r.name);
@@ -242,6 +243,7 @@ namespace
 			Command("close",  [](Args const&) { OverheadLeave(); });
 			Command("select", [](Args const& a) { if (!a.empty()) NativePlacementSelect(std::atoi(a[0].c_str())); });
 			Command("hover",  [](Args const& a) { if (!a.empty()) NativePlacementHover(std::atoi(a[0].c_str())); });
+			Command("locate", [](Args const& a) { if (!a.empty()) OverheadLocateMerc(std::atoi(a[0].c_str())); });
 			Command("clear",  [](Args const&) { NativePlacementClear(); });
 			Command("spread", [](Args const&) { NativePlacementSpread(); });
 			Command("group",  [](Args const&) { NativePlacementGroup(); });

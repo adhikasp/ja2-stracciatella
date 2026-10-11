@@ -44,5 +44,7 @@ void OverheadHover(int x, int y);
 bool OverheadClick(int x, int y);
 /** Centres the world view on a picture pixel (the sector card's minimap, and the overhead's click). */
 bool OverheadCentreOn(int x, int y);
+/** The squad list: selects that merc, centres the world on him and leaves the overhead. */
+bool OverheadLocateMerc(int soldierId);
 /** Leaves the overhead (not the placement: that ends with Done). */
 void OverheadLeave();

@@ -1099,6 +1099,11 @@ static void HandleNativePlacement(void)
 		{
 			case SDLK_RETURN:
 			case SDLK_KP_ENTER: NativePlacementDone(); break;
+			case SDLK_ESCAPE:
+			case SDLK_INSERT:
+				// the placement ends with Done: say so instead of doing nothing
+				if (!gPlacement.CanFinish()) gPlacementNotice = gpStrategicString[STR_TP_DISABLED_DONEHELP].to_std_string();
+				break;
 			case 'c': NativePlacementClear(); break;
 			case 'g': NativePlacementGroup(); break;
 			case 's': NativePlacementSpread(); break;

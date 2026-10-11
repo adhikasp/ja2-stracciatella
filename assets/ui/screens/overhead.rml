@@ -31,7 +31,7 @@
 				<div class="lg" data-for="g : legend"><span data-attr-class="'sw ' + g.cls"></span><span class="a">{{g.label}}</span><span class="n">{{g.n}}</span></div>
 			</div>
 			<span class="sec cap">{{l_squad}}</span>
-			<div class="who" data-for="w : squad" data-class-sel="w.sel" data-attr-id="'ovh.squad[' + w.id + ']'">
+			<div class="who card" data-for="w : squad" data-class-sel="w.sel" data-attr-id="'ovh.squad[' + w.id + ']'" data-event-click="locate(w.id)">
 				<div class="face"><img class="pic" data-attr-src="w.face" data-if="w.face != ''"/></div><span class="nm">{{w.name}}</span><span class="st">{{w.status}}</span>
 			</div>
 			<span class="none" data-if="squad_empty">{{l_empty}}</span>
@@ -43,7 +43,6 @@
 			<div class="who card" data-for="r : roster" data-class-sel="r.sel" data-attr-id="'ovh.roster[' + r.idx + ']'" data-event-click="select(r.idx)" data-event-mouseover="hover(r.idx)" data-event-mouseout="hover(-1)">
 				<div class="face"><img class="pic" data-attr-src="r.face" data-if="r.face != ''"/></div><span class="nm">{{r.name}}</span><span data-attr-class="r.cls">{{r.label}}</span>
 			</div>
-			<div class="note" id="ovh.notice" data-if="notice != ''">{{notice}}</div>
 			<div class="btns">
 				<button class="btn" id="ovh.clear" data-attr-title="help_clear" data-event-click="clear"><img class="icon" src="icon-remove"/><span class="label">{{l_clear}}</span><span class="kbd">C</span></button>
 				<button class="btn" id="ovh.spread" data-class-is-active="mode == 'spread'" data-attr-title="help_spread" data-event-click="spread"><img class="icon" src="icon-squad"/><span class="label">{{l_spread}}</span><span class="kbd">S</span></button>
@@ -53,6 +52,7 @@
 		</div>
 
 		<div class="keys">
+			<div class="note" id="ovh.notice" data-if="notice != ''">{{notice}}</div>
 			<div class="ln" data-for="k : keys"><span class="kbd">{{k.key}}</span><span>{{k.text}}</span></div>
 			<button class="btn back" id="ovh.back" data-if="!placement" data-event-click="close"><img class="icon" src="icon-close"/><span class="label">{{l_back}}</span><span class="kbd">Esc</span></button>
 		</div>

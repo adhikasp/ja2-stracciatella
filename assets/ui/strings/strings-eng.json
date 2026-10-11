@@ -26,6 +26,7 @@
   "tac.ovh.hint_back": "back to the world",
   "tac.ovh.hint_place": "a merc, then the zone",
   "tac.ovh.hint_deselect": "let go of the selected merc",
+  "tac.ovh.pile": "Item pile",
   "tac.ovh.more": "+{} more",
   "tac.ovh.empty": "nobody in the sector",
   "tac.cur.burst_at": "Burst at {}",

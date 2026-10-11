@@ -2,7 +2,7 @@
  * (tactical.rcss); the picture and its markers are in the picture's own pixels, set by TacticalOverhead.cc. */
 
 body.ovh { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: transparent; }
-.ovh-root { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: #080604F2; }
+.ovh-root { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: #080604; }
 
 .ovh-map { display: block; position: absolute; left: 16dp; top: 16dp; bottom: 16dp; right: 428dp; }
 .ovh-map .hud-head { display: flex; position: relative; width: 100%; }
@@ -22,7 +22,7 @@ body.ovh { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-
 .layer .mk.item { background-color: var(--c-info); border-radius: 0; }
 .layer .mk.hot { border-color: var(--c-text-strong); }
 .layer .view { position: absolute; border: 2dp var(--c-text-strong); }
-.layer .zone { position: absolute; background-color: #6FA35A40; border: 2dp var(--c-ok); }
+.layer .zone { position: absolute; box-sizing: border-box; background-color: #6FA35A40; border: 2dp var(--c-ok); }
 .layer .zone.off { background-color: #00000000; border-color: #6FA35A66; }
 .layer .hov { position: absolute; display: block; padding: 2dp var(--sp-2); background-color: #0D0905EE; border: var(--border) var(--c-accent); font-family: var(--font-stencil); font-size: var(--fs-sm); text-transform: uppercase; color: var(--c-text-strong); white-space: nowrap; }
 .layer .hov .pile { display: block; font-family: var(--font-body); text-transform: none; font-size: var(--fs-xs); color: var(--c-text); }

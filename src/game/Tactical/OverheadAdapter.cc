@@ -345,6 +345,19 @@ bool OverheadCentreOn(int const x, int const y)
 	return true;
 }
 
+bool OverheadLocateMerc(int const id)
+{
+	if (!g_open || g_placement || id < 0 || id >= MAX_NUM_SOLDIERS) return false;
+	SOLDIERTYPE& s = GetMan(id);
+	if (!s.bActive || !s.bInSector || s.sGridNo == NOWHERE) return false;
+	SelectSoldier(&s, SELSOLDIER_NONE);
+	INT16 cx, cy;
+	ConvertGridNoToCenterCellXY(s.sGridNo, &cx, &cy);
+	SetRenderCenter(cx, cy);
+	KillOverheadMap();
+	return true;
+}
+
 void OverheadLeave()
 {
 	if (g_open && !g_placement) KillOverheadMap();

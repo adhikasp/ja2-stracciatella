@@ -79,6 +79,16 @@ ja2.expect(o.hover and o.hover.kind == "item" and #o.hover.rows >= 1, "hovering 
 shots.take("overhead_pile.png")
 ja2.overheadOp("hover", { x = -1, y = -1 })
 
+-- a squad card selects that merc, centres the view on him and leaves
+o = ja2.overhead()
+local who = o.squad[2]
+ja2.click{ id = "ovh.squad[" .. who.id .. "]" }
+settle()
+ja2.expect(not ja2.overhead().open, "a squad card leaves the overhead")
+ja2.expect(ja2.viewModel("tactical").cards[battle.selected()].name == who.name, "and selects " .. who.name)
+ja2.overheadOp("open")
+settle()
+
 -- Esc leaves
 ja2.key("ESC")
 settle()
