@@ -4,9 +4,9 @@ set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/ViewModelLua.cc DIRECTORY ${CMAK
 
 # The screen models are pure (no RmlUi): the legacy screens use them too (Intro.cc's exit rules), so they build in
 # every configuration and their unit tests always run.
-list(APPEND LOCAL_JA2_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/IntroModel.cc ${CMAKE_CURRENT_SOURCE_DIR}/EpilogueModel.cc ${CMAKE_CURRENT_SOURCE_DIR}/CursorModel.cc ${CMAKE_CURRENT_SOURCE_DIR}/PopupModels.cc ${CMAKE_CURRENT_SOURCE_DIR}/OverlayModel.cc)
+list(APPEND LOCAL_JA2_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/IntroModel.cc ${CMAKE_CURRENT_SOURCE_DIR}/EpilogueModel.cc ${CMAKE_CURRENT_SOURCE_DIR}/CursorModel.cc ${CMAKE_CURRENT_SOURCE_DIR}/PopupModels.cc ${CMAKE_CURRENT_SOURCE_DIR}/OverlayModel.cc ${CMAKE_CURRENT_SOURCE_DIR}/OverheadModel.cc)
 if (WITH_UNITTESTS)
-    list(APPEND LOCAL_JA2_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/IntroModel_unittest.cc ${CMAKE_CURRENT_SOURCE_DIR}/EpilogueModel_unittest.cc ${CMAKE_CURRENT_SOURCE_DIR}/CursorModel_unittest.cc ${CMAKE_CURRENT_SOURCE_DIR}/PopupModels_unittest.cc ${CMAKE_CURRENT_SOURCE_DIR}/OverlayModel_unittest.cc)
+    list(APPEND LOCAL_JA2_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/IntroModel_unittest.cc ${CMAKE_CURRENT_SOURCE_DIR}/EpilogueModel_unittest.cc ${CMAKE_CURRENT_SOURCE_DIR}/CursorModel_unittest.cc ${CMAKE_CURRENT_SOURCE_DIR}/PopupModels_unittest.cc ${CMAKE_CURRENT_SOURCE_DIR}/OverlayModel_unittest.cc ${CMAKE_CURRENT_SOURCE_DIR}/OverheadModel_unittest.cc)
 endif()
 
 if (WITH_NATIVE_UI)
@@ -23,6 +23,7 @@ if (WITH_NATIVE_UI)
         ${CMAKE_CURRENT_SOURCE_DIR}/TacticalHud.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/TacticalCursor.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/TacticalOverlays.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/TacticalOverhead.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/WeaponReadout.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/LoadoutScreen.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/LaptopImages.cc

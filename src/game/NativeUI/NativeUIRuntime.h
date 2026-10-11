@@ -106,6 +106,13 @@ namespace NativeUI
 	/** The native loadout screen (LoadoutScreen.cc): refreshed once a frame while it is open (BeginFrame). */
 	void LoadoutUpdate();
 
+	/** The native overhead map and placement (TacticalOverhead.cc): shown, hidden and refreshed once a frame
+	 * (BeginFrame). */
+	void TacticalOverheadUpdate();
+	bool TacticalOverheadActive();
+	/** The sector card's minimap, refreshed once a frame with the HUD document. */
+	void TacticalMinimapUpdate(Rml::ElementDocument* hud);
+
 	/** The mouse is over a part of the HUD that takes clicks (an element with class "hit"). */
 	bool TacticalHudWantsMouse();
 	/** The tactical cursor layer (TacticalCursor.cc): registers its element once, refreshed once a frame with the HUD

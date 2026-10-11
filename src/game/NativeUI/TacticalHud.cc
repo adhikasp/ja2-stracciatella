@@ -46,6 +46,7 @@
 #include "RenderWorld.h"
 #include "Message.h"
 #include "Overhead.h"
+#include "Overhead_Map.h"
 #include "Soldier_Control.h"
 #include "Soldier_Macros.h"
 #include "Soldier_Profile.h"
@@ -444,6 +445,7 @@ namespace
 			});
 			Command("talk", [](Args const&) { ToggleTalkCursorMode(&guiCurrentEvent); });
 			Command("options", [](Args const&) { PressKey(SDLK_O); });
+			Command("overhead", [](Args const&) { if (!InOverheadMap()) GoIntoOverheadMap(); });
 			Command("money_region", [](Args const&) { InventoryCashButton(); });
 			Command("keyring", [](Args const&) { if (InKeyRingPopup()) KeyRingClose(); else InventoryKeyRing(); });
 			// slot(index, mouse button): left picks up or puts down, right shows the description (the inventory core decides)
@@ -1757,6 +1759,8 @@ void TacticalHudUpdate()
 	// the marker, path and chip over the world, and the pointer's shape
 	TacticalCursorUpdate(g_hud.doc);
 	TacticalOverlaysUpdate(g_hud.doc);
+	// the sector card's picture of the sector and where the view is
+	TacticalMinimapUpdate(g_hud.doc);
 }
 
 bool TacticalHudWantsMouse()

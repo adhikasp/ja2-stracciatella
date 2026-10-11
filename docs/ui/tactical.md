@@ -219,7 +219,9 @@ and over a pocket or a card the chip beside the pointer says what letting go doe
 | Names, bars, assignment/catch/give prompts, health of others, damage numbers over the mercs | I12 |
 | Message lines; message log on **H** with filters (help moved to **Shift+H**) | I13 |
 | Turn / interrupt / enemy banner with progress | I14 |
-| Sector, town, day and time; overhead (Insert), tree tops, item glow | I15 |
+| Sector, town, day and time; the minimap (the whole sector, the view box, a dot per merc / enemy seen / militia / civilian; click or drag centres the view, right click opens the overhead); overhead (Insert), tree tops, item glow | I15 |
+| Overhead map (Insert, the sector card's button, right click on the minimap): the whole sector as one picture (the legacy small-tile traversal recorded through the world pipeline, 24-bit colour) at the largest integer scale that fits, a dot per merc / enemy seen / militia / civilian / vehicle and a square per pile, the view box, names on hover and what is in a pile, the legend with counts and the squad list; a click centres the world there and leaves, Esc / Insert / right click leave | I18 |
+| Placement (a mode of the same view): the arrival strip of the selected merc lit (a card under the mouse shows its edge), the roster with placed / waiting / click the zone, progress, *Clear* (C), *Spread* (S), *Group* (G), *Done* (Enter, off until everyone is placed); a click in the strip puts the selected merc (or his group) at the nearest edgepoint, and says why when it cannot | I19, A24 |
 | Action menu (right click held): Move and Act groups with keys and AP costs; door menu: the door's actions with AP costs and why a choice is off; pick-up menu: the items on the ground with All / Take / Cancel — all three are models (`PopupModels`), no legacy button or region is made | A17–A19 |
 | Stack popup (right click on a stack): the objects with rounds or condition, click takes one into the hand or puts the hand's object in, *Take n* / *Take all*; key ring: each key with where it was found, *Use* on the door in front of the merc (with the reason when it is off), *Give* (the key in the hand) and *Put the key back*; a key in the hand dropped on a door uses it | A20 |
 | Talk panel (the Phase 5 layout, centred over the bar): the NPC's face and line, the six approaches with keys 1-6, *Done* (Esc), the name asks who they are; the merc's own line as a subtitle over his head and the speaking face as a card | A20 |
@@ -232,7 +234,11 @@ Gaps, still legacy or not done in this PR:
   screen's talk panel no longer draws.
 - The talk panel shows the NPC's face as a picture: no mouth or eyes animation yet (that is the squad card's work in
   #319). Recruit is never greyed out: whether she will join is the conversation's answer, not a rule the panel knows.
-- Overhead map and placement: legacy. The sector card has no radar picture yet.
+- The overhead map and the placement need the native HUD as well; with the legacy HUD (`ui_mode tactical=legacy`)
+  they stay the legacy 640x320 views until #324 deletes them. The picture is the legacy small-tile art at
+  1/5 scale: sharper than the legacy picture (24-bit colour, integer scale) but not HD art (#35).
+- The overhead picture is redrawn about every 3 s while it is open and every 8 s for the minimap, not on every
+  change; a door or a fire shows up with that delay.
 - The detail panel's inventory stays click-to-pick, click-to-put; the dedicated loadout screen
   (`docs/ui/loadout.md`, the inventory button in the panel header) has real drag and drop, the LBE
   windows and the weapon platform. There is no "drop on a card to give" yet.

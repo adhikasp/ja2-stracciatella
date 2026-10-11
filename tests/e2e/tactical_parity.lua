@@ -129,6 +129,19 @@ ja2.click{ id = "tac.detail.close" }
 ja2.waitIdle()
 ja2.expect(not vm().detail, "the detail panel closes")
 
+-- I15, I18: the sector card has the minimap, and its overhead button opens the native overhead map (Esc closes it;
+-- tactical_overhead.lua covers marks, hover, click and the placement)
+ja2.expect(ja2.exists{ id = "tac.radar" }, "the sector card shows the minimap")
+ja2.expect(ja2.overhead().legend.mercs == 1, "the minimap counts Ivan")
+ja2.click{ id = "tac.overhead" }
+ja2.waitIdle()
+ja2.expect(ja2.overhead().open and ja2.overhead().native, "the overhead button opens the native overhead")
+ja2.expect(ja2.exists{ id = "ovh.map" }, "with its picture")
+shots.take("overhead.png", "small")
+ja2.key("ESC")
+ja2.waitIdle()
+ja2.expect(not ja2.overhead().open, "Esc closes it")
+
 -- I13: H opens the message log
 ja2.key("h")
 ja2.waitIdle()

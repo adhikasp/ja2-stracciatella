@@ -37,7 +37,10 @@
 #include "Game_Clock.h"
 #include "JAScreens.h"
 #include "UILayout.h"
+#include "OverheadAdapter.h"
+#include "OverheadModel.h"
 
+#include <algorithm>
 #include <string_theory/format>
 #include <string_theory/string>
 #include <memory>
@@ -72,6 +75,11 @@ GUIButtonRef iTPButtons[NUM_TP_BUTTONS];
 UINT8	gubDefaultButton = CLEAR_BUTTON;
 /** The placement GUI is a 640x480 block centred horizontally and anchored to the bottom of the screen. */
 #define PLACEMENT_Y (SCREEN_HEIGHT - 480)
+
+/** The placement is the native view's (issue #323): no legacy picture, buttons or regions; its state is this. */
+static bool gfNativePlacement = false;
+static OverheadModel::Placement gPlacement;
+static std::string gPlacementNotice;
 
 BOOLEAN gfTacticalPlacementGUIActive = FALSE;
 BOOLEAN gfTacticalPlacementFirstTime = FALSE;
@@ -116,6 +124,8 @@ static void GroupPlacementsCallback(GUI_BUTTON* btn, UINT32 reason);
 static void MercClickCallback(MOUSE_REGION* reg, UINT32 reason);
 static void MercMoveCallback(MOUSE_REGION* reg, UINT32 reason);
 static void PlaceMercs(void);
+static void SyncNativePlacement(void);
+static void HandleNativePlacement(void);
 static void SetCursorMerc(INT8 placement);
 static void SpreadPlacementsCallback(GUI_BUTTON* btn, UINT32 reason);
 
@@ -127,23 +137,28 @@ void InitTacticalPlacementGUI()
 	gfValidLocationsChanged      = TRUE;
 	gfTacticalPlacementFirstTime = TRUE;
 
+	gfNativePlacement = NativeOverheadWanted();
+	gPlacementNotice.clear();
 	GoIntoOverheadMap();
 
-	giOverheadPanelImage = AddVideoObjectFromFile(INTERFACEDIR "/overheadinterface.sti");
-	giMercPanelImage     = AddVideoObjectFromFile(INTERFACEDIR "/panels.sti");
+	if (!gfNativePlacement)
+	{
+		giOverheadPanelImage = AddVideoObjectFromFile(INTERFACEDIR "/overheadinterface.sti");
+		giMercPanelImage     = AddVideoObjectFromFile(INTERFACEDIR "/panels.sti");
 
-	BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/overheaduibuttons.sti", 0, 1);
-	giOverheadButtonImages[DONE_BUTTON]   = img;
-	giOverheadButtonImages[SPREAD_BUTTON] = UseLoadedButtonImage(img, 0, 1);
-	giOverheadButtonImages[GROUP_BUTTON]  = UseLoadedButtonImage(img, 0, 1);
-	giOverheadButtonImages[CLEAR_BUTTON]  = UseLoadedButtonImage(img, 0, 1);
+		BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/overheaduibuttons.sti", 0, 1);
+		giOverheadButtonImages[DONE_BUTTON]   = img;
+		giOverheadButtonImages[SPREAD_BUTTON] = UseLoadedButtonImage(img, 0, 1);
+		giOverheadButtonImages[GROUP_BUTTON]  = UseLoadedButtonImage(img, 0, 1);
+		giOverheadButtonImages[CLEAR_BUTTON]  = UseLoadedButtonImage(img, 0, 1);
 
-	// Create the buttons which provide automatic placements.
-	MakeButton(CLEAR_BUTTON,  332, ClearPlacementsCallback,            gpStrategicString[STR_TP_CLEAR],  gpStrategicString[STR_TP_CLEARHELP]);
-	MakeButton(SPREAD_BUTTON, 367, SpreadPlacementsCallback,           gpStrategicString[STR_TP_SPREAD], gpStrategicString[STR_TP_SPREADHELP]);
-	MakeButton(GROUP_BUTTON,  402, GroupPlacementsCallback,            gpStrategicString[STR_TP_GROUP],  gpStrategicString[STR_TP_GROUPHELP]);
-	MakeButton(DONE_BUTTON,   437, DoneOverheadPlacementClickCallback, gpStrategicString[STR_TP_DONE],   gpStrategicString[STR_TP_DONEHELP]);
-	iTPButtons[DONE_BUTTON]->AllowDisabledFastHelp();
+		// Create the buttons which provide automatic placements.
+		MakeButton(CLEAR_BUTTON,  332, ClearPlacementsCallback,            gpStrategicString[STR_TP_CLEAR],  gpStrategicString[STR_TP_CLEARHELP]);
+		MakeButton(SPREAD_BUTTON, 367, SpreadPlacementsCallback,           gpStrategicString[STR_TP_SPREAD], gpStrategicString[STR_TP_SPREADHELP]);
+		MakeButton(GROUP_BUTTON,  402, GroupPlacementsCallback,            gpStrategicString[STR_TP_GROUP],  gpStrategicString[STR_TP_GROUPHELP]);
+		MakeButton(DONE_BUTTON,   437, DoneOverheadPlacementClickCallback, gpStrategicString[STR_TP_DONE],   gpStrategicString[STR_TP_DONEHELP]);
+		iTPButtons[DONE_BUTTON]->AllowDisabledFastHelp();
+	}
 
 	GROUP const& bg = *gpBattleGroup;
 	/* First pass: Count the number of mercs that are going to be placed by the
@@ -189,10 +204,14 @@ void InitTacticalPlacementGUI()
 		m.pSoldier                 = s;
 		m.ubStrategicInsertionCode = s->ubStrategicInsertionCode;
 		m.fPlaced                  = FALSE;
-		m.uiVObjectID              = Load65Portrait(GetProfile(m.pSoldier->ubProfile));
-		INT32 const x = STD_SCREEN_X +  91 + i / 2 * 54;
-		INT32 const y = PLACEMENT_Y + 361 + i % 2 * 51;
-		MSYS_DefineRegion(&m.region, x, y, x + 54, y + 62, MSYS_PRIORITY_HIGH, 0, MercMoveCallback, MercClickCallback);
+		m.uiVObjectID              = nullptr;
+		if (!gfNativePlacement)
+		{
+			m.uiVObjectID = Load65Portrait(GetProfile(m.pSoldier->ubProfile));
+			INT32 const x = STD_SCREEN_X +  91 + i / 2 * 54;
+			INT32 const y = PLACEMENT_Y + 361 + i % 2 * 51;
+			MSYS_DefineRegion(&m.region, x, y, x + 54, y + 62, MSYS_PRIORITY_HIGH, 0, MercMoveCallback, MercClickCallback);
+		}
 
 		switch (s->ubStrategicInsertionCode)
 		{
@@ -201,6 +220,32 @@ void InitTacticalPlacementGUI()
 			case INSERTION_CODE_SOUTH: gfSouth = true; break;
 			case INSERTION_CODE_WEST:  gfWest  = true; break;
 		}
+	}
+
+	if (gfNativePlacement)
+	{
+		std::vector<OverheadModel::Piece> pieces;
+		FOR_EACH_MERC_PLACEMENT(i)
+		{
+			SOLDIERTYPE const& s = *i->pSoldier;
+			OverheadModel::Piece p;
+			p.id    = s.ubID;
+			p.side  = i->ubStrategicInsertionCode == INSERTION_CODE_NORTH ? OverheadModel::Side::North :
+			          i->ubStrategicInsertionCode == INSERTION_CODE_EAST  ? OverheadModel::Side::East  :
+			          i->ubStrategicInsertionCode == INSERTION_CODE_SOUTH ? OverheadModel::Side::South :
+			          i->ubStrategicInsertionCode == INSERTION_CODE_WEST  ? OverheadModel::Side::West  :
+			          OverheadModel::Side::None;
+			p.group = s.ubGroupID;
+			p.face  = s.ubProfile;
+			p.name  = s.name.to_std_string();
+			pieces.push_back(std::move(p));
+		}
+		using OverheadModel::Mode;
+		gPlacement.Begin(std::move(pieces), gubDefaultButton == GROUP_BUTTON ? Mode::Group : gubDefaultButton == SPREAD_BUTTON ? Mode::Spread : Mode::Clear);
+		PlaceMercs();
+		SyncNativePlacement();
+		if (gubDefaultButton == SPREAD_BUTTON) gPlacement.SpreadDone();
+		return;
 	}
 
 	PlaceMercs();
@@ -383,6 +428,12 @@ static void KillTacticalPlacementGUI(void);
 
 void TacticalPlacementHandle()
 {
+	if (gfNativePlacement)
+	{
+		HandleNativePlacement();
+		return;
+	}
+
 	InputAtom InputEvent;
 
 	EnsureDoneButtonStatus();
@@ -505,22 +556,27 @@ static void KillTacticalPlacementGUI(void)
 	gfEnterTacticalPlacementGUI = FALSE;
 	gfTacticalPlacementGUIActive = FALSE;
 	gfKillTacticalGUI = FALSE;
-	//Delete video objects
-	DeleteVideoObject(giOverheadPanelImage);
-	DeleteVideoObject(giMercPanelImage);
-	//Delete buttons
-	for (INT32 i = 0; i < NUM_TP_BUTTONS; ++i)
+	if (!gfNativePlacement)
 	{
-		UnloadButtonImage( giOverheadButtonImages[ i ] );
-		RemoveButton( iTPButtons[ i ] );
+		//Delete video objects
+		DeleteVideoObject(giOverheadPanelImage);
+		DeleteVideoObject(giMercPanelImage);
+		//Delete buttons
+		for (INT32 i = 0; i < NUM_TP_BUTTONS; ++i)
+		{
+			UnloadButtonImage( giOverheadButtonImages[ i ] );
+			RemoveButton( iTPButtons[ i ] );
+		}
+		//Delete faces and regions
+		FOR_EACH_MERC_PLACEMENT(i)
+		{
+			MERCPLACEMENT& m = *i;
+			DeleteVideoObject(m.uiVObjectID);
+			MSYS_RemoveRegion(&m.region);
+		}
 	}
-	//Delete faces and regions
-	FOR_EACH_MERC_PLACEMENT(i)
-	{
-		MERCPLACEMENT& m = *i;
-		DeleteVideoObject(m.uiVObjectID);
-		MSYS_RemoveRegion(&m.region);
-	}
+	gfNativePlacement = false;
+	gPlacement = OverheadModel::Placement{};
 
 	if( gsCurInterfacePanel >= NUM_UI_PANELS )
 		gsCurInterfacePanel = TEAM_PANEL;
@@ -898,4 +954,164 @@ static void DialogRemoved(MessageBoxReturnValue const ubResult)
 {
 	gfTacticalPlacementGUIDirty = TRUE;
 	gfValidLocationsChanged = TRUE;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------
+// The native placement (issue #323). The rules are OverheadModel::Placement; this carries them out on the soldiers
+// (the same edgepoint search and put-down the legacy buttons use) and answers the native view.
+
+bool NativePlacementActive()
+{
+	return gfTacticalPlacementGUIActive && gfNativePlacement;
+}
+
+OverheadModel::Placement const& NativePlacementState()
+{
+	return gPlacement;
+}
+
+std::string const& NativePlacementNotice()
+{
+	return gPlacementNotice;
+}
+
+static void SyncNativePlacement(void)
+{
+	for (INT32 i = 0; i < giPlacements && i < gPlacement.Count(); ++i)
+	{
+		gPlacement.SetPlaced(i, gMercPlacement[i].fPlaced != FALSE);
+	}
+}
+
+bool NativePlacementClick(int const x, int const y)
+{
+	gPlacementNotice.clear();
+	if (!NativePlacementActive()) return false;
+	using Why = OverheadModel::Placement::Why;
+	switch (gPlacement.CanPlaceAt(x, y))
+	{
+		case Why::NobodySelected: return false;
+		case Why::OutsideZone:
+			gPlacementNotice = gpStrategicString[STR_TP_INVALID_MESSAGE].to_std_string();
+			return false;
+		case Why::Ok: break;
+	}
+
+	GridNo const gridno = OverheadGridNoAtPoint(x, y, false);
+	if (gridno == NOWHERE)
+	{
+		gPlacementNotice = gpStrategicString[STR_TP_INACCESSIBLE_MESSAGE].to_std_string();
+		return false;
+	}
+
+	std::vector<int> const targets = gPlacement.Targets();
+	bool invalid = false;
+	BeginMapEdgepointSearch();
+	// Find a place for each one first; if one can't be placed, none is (the legacy rule)
+	for (int const t : targets)
+	{
+		MERCPLACEMENT const& m = gMercPlacement[t];
+		m.pSoldier->usStrategicInsertionData = SearchForClosestPrimaryMapEdgepoint(gridno, m.ubStrategicInsertionCode);
+		if (m.pSoldier->usStrategicInsertionData == NOWHERE) { invalid = true; break; }
+	}
+	if (!invalid)
+	{
+		for (int const t : targets)
+		{
+			MERCPLACEMENT& m = gMercPlacement[t];
+			m.pSoldier->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+			PutDownMercPiece(m);
+		}
+	}
+	EndMapEdgepointSearch();
+
+	if (invalid)
+	{
+		gPlacementNotice = gpStrategicString[STR_TP_INACCESSIBLE_MESSAGE].to_std_string();
+		return false;
+	}
+	SyncNativePlacement();
+	gPlacement.SelectNextUnplaced();
+	return true;
+}
+
+void NativePlacementSelect(int const index)
+{
+	if (!NativePlacementActive()) return;
+	gPlacement.Select(index);
+	gPlacementNotice.clear();
+}
+
+void NativePlacementHover(int const index)
+{
+	if (NativePlacementActive()) gPlacement.Hover(index);
+}
+
+void NativePlacementDeselect()
+{
+	if (NativePlacementActive()) gPlacement.Deselect();
+}
+
+void NativePlacementClear()
+{
+	if (!NativePlacementActive()) return;
+	gubDefaultButton = CLEAR_BUTTON;
+	FOR_EACH_MERC_PLACEMENT(i) PickUpMercPiece(*i);
+	gfEveryonePlaced = FALSE;
+	SyncNativePlacement();
+	gPlacement.ClearAll();
+	gPlacementNotice.clear();
+}
+
+void NativePlacementSpread()
+{
+	if (!NativePlacementActive()) return;
+	gubDefaultButton = SPREAD_BUTTON;
+	ChooseRandomEdgepoints();
+	SyncNativePlacement();
+	gPlacement.SpreadDone();
+	gPlacementNotice.clear();
+}
+
+void NativePlacementGroup()
+{
+	if (!NativePlacementActive()) return;
+	gPlacement.ToggleGroup();
+	gubDefaultButton = gPlacement.mode == OverheadModel::Mode::Group ? GROUP_BUTTON : CLEAR_BUTTON;
+	gPlacementNotice.clear();
+}
+
+bool NativePlacementDone()
+{
+	if (!NativePlacementActive() || !gPlacement.CanFinish()) return false;
+	gfKillTacticalGUI = 1; // done at the next frame, where the legacy button's did
+	return true;
+}
+
+static void HandleNativePlacement(void)
+{
+	InputAtom e;
+	while (DequeueSpecificEvent(&e, KEYBOARD_EVENTS))
+	{
+		if (e.usEvent != KEY_DOWN) continue;
+		switch (e.usParam)
+		{
+			case SDLK_RETURN:
+			case SDLK_KP_ENTER: NativePlacementDone(); break;
+			case SDLK_ESCAPE:
+			case SDLK_INSERT:
+				// the placement ends with Done: say so instead of doing nothing
+				if (!gPlacement.CanFinish()) gPlacementNotice = gpStrategicString[STR_TP_DISABLED_DONEHELP].to_std_string();
+				break;
+			case 'c': NativePlacementClear(); break;
+			case 'g': NativePlacementGroup(); break;
+			case 's': NativePlacementSpread(); break;
+			case 'x':
+				if (e.usKeyState & ALT_DOWN) HandleShortCutExitState();
+				break;
+		}
+	}
+	if (gfKillTacticalGUI == 1 && gPlacement.CanFinish()) KillTacticalPlacementGUI();
+	else gfKillTacticalGUI = FALSE;
 }

@@ -14,6 +14,7 @@
 #include "Real_Time_Input.h"
 #include "Spread_Burst.h"
 #include "OverlayScenario.h"
+#include "OverheadScenario.h"
 #include "PopupScenario.h"
 
 #include "Assignments.h"
@@ -927,6 +928,12 @@ namespace
 		// The tactical world overlays as data (issue #322): { paused, locators, bursts, arrows, band, pools }
 		// (see OverlayScenario.h).
 		ja2.set_function("overlays", [] { return Guarded([&] { return OverlayState(g_lua); }); });
+		// The overhead map and the placement as data (issue #323): ja2.overhead() reads the view, ja2.overheadOp(op,
+		// spec) makes one choice and returns { ok, why }. See OverheadScenario.h.
+		ja2.set_function("overhead", [] { return Guarded([&] { return OverheadState(g_lua); }); });
+		ja2.set_function("overheadOp", [](std::string const& op, sol::optional<sol::table> spec) {
+			return Guarded([&] { return OverheadOp(g_lua, op, spec); });
+		});
 		// The tactical popups as data (issue #321): ja2.popup() reads what is open, ja2.popupOp(op, spec) makes one
 		// choice and returns { ok, why }. See PopupScenario.h.
 		ja2.set_function("popup", [] { return Guarded([&] { return PopupState(g_lua); }); });
@@ -1098,6 +1105,14 @@ namespace
 					static GROUP dummy;
 					dummy.ubSector = gWorldSector;
 					gpBattleGroup = &dummy;
+					// a = "north" | "east" | "south" | "west": the edge the squad arrives from (default: as they are)
+					if (a && a->is<std::string>())
+					{
+						std::string const side = a->as<std::string>();
+						UINT8 const code = side == "north" ? INSERTION_CODE_NORTH : side == "east" ? INSERTION_CODE_EAST :
+							side == "south" ? INSERTION_CODE_SOUTH : side == "west" ? INSERTION_CODE_WEST : INSERTION_CODE_GRIDNO;
+						FOR_EACH_IN_TEAM(s, OUR_TEAM) { if (s->bActive) s->ubStrategicInsertionCode = code; }
+					}
 					InitTacticalPlacementGUI();
 				}
 				else if (what == "quote")
