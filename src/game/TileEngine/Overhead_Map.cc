@@ -1,4 +1,5 @@
 #include "Overhead_Map.h"
+#include "OverheadAdapter.h"
 #include "Button_System.h"
 #include "ContentManager.h"
 #include "Cursors.h"
@@ -47,6 +48,8 @@
 #include "VSurface.h"
 #include "World_Items.h"
 #include "WorldDef.h"
+#include "WorldPipeline.h"
+#include <algorithm>
 #include <string_theory/string>
 
 /** Top of the overhead map area: centred in the standard box, except for the tactical placement GUI, which sits at the bottom of the screen. */
@@ -83,6 +86,7 @@ static SMALL_TILE_SURF gSmTileSurf[NUMBEROFTILETYPES];
 static SMALL_TILE_DB   gSmTileDB[NUMBEROFTILES];
 static TileSetID       gubSmTileNum                   = TILESET_INVALID;
 static BOOLEAN         gfInOverheadMap = FALSE;
+static bool            gfNativeOverhead = false; // the native view (OverheadAdapter.cc) instead of the legacy one
 static MOUSE_REGION    OverheadRegion;
 static MOUSE_REGION    OverheadBackgroundRegion;
 BOOLEAN                gfOverheadMapDirty             = FALSE;
@@ -244,6 +248,21 @@ static void GetOverheadScreenXYFromGridNo(INT16 const gridno, INT16* const out_x
 }
 
 
+void OverheadPointOfGridNo(GridNo const gridno, int* const out_x, int* const out_y)
+{
+	INT16 x, y;
+	GetOverheadScreenXYFromGridNo(INT16(gridno), &x, &y);
+	*out_x = x;
+	*out_y = y;
+}
+
+
+bool OverheadIsNative(void)
+{
+	return gfInOverheadMap && gfNativeOverhead;
+}
+
+
 static void DisplayMercNameInOverhead(SOLDIERTYPE const& s)
 {
 	// Get Screen position of guy
@@ -275,6 +294,19 @@ void HandleOverheadMap(void)
 	gsOveritemPoolGridNo = NOWHERE;
 
 	InitNewOverheadDB(giCurrentTilesetID);
+
+	if (gfNativeOverhead)
+	{
+		// the native view draws and takes the mouse; this is only game flow and the keys
+		if (!gfEditMode && gfTacticalPlacementGUIActive)
+		{
+			DecaySmokeEffects(GetWorldTotalSeconds(), false);
+			DecayLightEffects(GetWorldTotalSeconds(), false);
+		}
+		HandleTalkingAutoFaces();
+		HandleNativeOverhead();
+		return;
+	}
 
 	RestoreBackgroundRects();
 
@@ -386,6 +418,16 @@ void GoIntoOverheadMap( )
 {
 	gfInOverheadMap = TRUE;
 
+	// The native HUD is up: the overhead is a native view (no legacy regions, picture or panel changes)
+	if (!gfEditMode && NativeOverheadWanted())
+	{
+		gfNativeOverhead = true;
+		gfOverheadMapDirty = TRUE;
+		OpenNativeOverhead(gfTacticalPlacementGUIActive != FALSE);
+		return;
+	}
+	gfNativeOverhead = false;
+
 	MSYS_DefineRegion(&OverheadBackgroundRegion, STD_SCREEN_X, OVERHEAD_Y, STD_SCREEN_X + 640, OVERHEAD_Y + 360, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
 
 	MSYS_DefineRegion(&OverheadRegion, STD_SCREEN_X, OVERHEAD_Y, STD_SCREEN_X + 640, OVERHEAD_Y + 320, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary));
@@ -451,6 +493,13 @@ void KillOverheadMap()
 	SetRenderFlags( RENDER_FLAG_FULL );
 	RenderWorld( );
 
+	if (gfNativeOverhead)
+	{
+		gfNativeOverhead = false;
+		CloseNativeOverhead();
+		return;
+	}
+
 	MSYS_RemoveRegion(&OverheadRegion );
 	MSYS_RemoveRegion(&OverheadBackgroundRegion );
 
@@ -471,6 +520,321 @@ static INT16 GetModifiedOffsetLandHeight(INT32 const gridno)
 }
 
 
+// The overhead traversal: the small tiles of the sector in the order the legacy renderer blits them. The sink says
+// what a blit is (the legacy blitters into the frame buffer, or a recorded instance for the native picture), so the
+// traversal itself exists once.
+template<typename Sink>
+static void TraverseOverhead(Sink& out, INT16 const sStartPointX_M, INT16 const sStartPointY_M, INT16 const sStartPointX_S, INT16 const sStartPointY_S, INT16 const sEndXS, INT16 const sEndYS)
+{
+	{ // Begin Render Loop
+		INT16 sAnchorPosX_M = sStartPointX_M;
+		INT16 sAnchorPosY_M = sStartPointY_M;
+		INT16 sAnchorPosX_S = sStartPointX_S;
+		INT16 sAnchorPosY_S = sStartPointY_S;
+		bool  bXOddFlag     = false;
+		do
+		{
+			INT16 sTempPosX_M = sAnchorPosX_M;
+			INT16 sTempPosY_M = sAnchorPosY_M;
+			INT16 sTempPosX_S = sAnchorPosX_S;
+			INT16 sTempPosY_S = sAnchorPosY_S;
+			if (bXOddFlag) sTempPosX_S += 4;
+			do
+			{
+				UINT32 const usTileIndex = FASTMAPROWCOLTOPOS(sTempPosY_M, sTempPosX_M);
+				if (usTileIndex < GRIDSIZE)
+				{
+					INT16 const sHeight = GetOffsetLandHeight(usTileIndex) / 5;
+					for (LEVELNODE const* n = gpWorldLevelData[usTileIndex].pLandStart; n; n = n->pPrevNode)
+					{
+						SMALL_TILE_DB const& pTile = gSmTileDB[n->usIndex];
+						INT16         const  sX    = sTempPosX_S;
+						INT16         const  sY    = sTempPosY_S - sHeight + gsRenderHeight / 5;
+						pTile.vo->CurrentShade(n->ubShadeLevel);
+						out.Trans(pTile, sX, sY);
+					}
+				}
+
+				sTempPosX_S += 8;
+				++sTempPosX_M;
+				--sTempPosY_M;
+			}
+			while (sTempPosX_S < sEndXS);
+
+			if (bXOddFlag)
+			{
+				++sAnchorPosY_M;
+			}
+			else
+			{
+				++sAnchorPosX_M;
+			}
+
+			bXOddFlag = !bXOddFlag;
+			sAnchorPosY_S += 2;
+		}
+		while (sAnchorPosY_S < sEndYS);
+	}
+
+	{ // Begin Render Loop
+		INT16 sAnchorPosX_M = sStartPointX_M;
+		INT16 sAnchorPosY_M = sStartPointY_M;
+		INT16 sAnchorPosX_S = sStartPointX_S;
+		INT16 sAnchorPosY_S = sStartPointY_S;
+		bool  bXOddFlag     = false;
+		do
+		{
+			INT16 sTempPosX_M = sAnchorPosX_M;
+			INT16 sTempPosY_M = sAnchorPosY_M;
+			INT16 sTempPosX_S = sAnchorPosX_S;
+			INT16 sTempPosY_S = sAnchorPosY_S;
+			if (bXOddFlag) sTempPosX_S += 4;
+			do
+			{
+				UINT32 const usTileIndex = FASTMAPROWCOLTOPOS(sTempPosY_M, sTempPosX_M);
+				if (usTileIndex < GRIDSIZE)
+				{
+					INT16 const sHeight         = GetOffsetLandHeight(usTileIndex) / 5;
+					INT16 const sModifiedHeight = GetModifiedOffsetLandHeight(usTileIndex) / 5;
+
+					for (LEVELNODE const* n = gpWorldLevelData[usTileIndex].pObjectHead; n; n = n->pNext)
+					{
+						if (n->usIndex >= NUMBEROFTILES) continue;
+						// Don't render itempools!
+						if (n->uiFlags & LEVELNODE_ITEM) continue;
+
+						SMALL_TILE_DB const& pTile = gSmTileDB[n->usIndex];
+						INT16         const  sX    = sTempPosX_S;
+						INT16                sY    = sTempPosY_S;
+
+						if (gTileDatabase[n->usIndex].uiFlags & IGNORE_WORLD_HEIGHT)
+						{
+							sY -= sModifiedHeight;
+						}
+						else
+						{
+							sY -= sHeight;
+						}
+
+						sY += gsRenderHeight / 5;
+
+						pTile.vo->CurrentShade(n->ubShadeLevel);
+						out.Trans(pTile, sX, sY);
+					}
+
+					for (LEVELNODE const* n = gpWorldLevelData[usTileIndex].pShadowHead; n; n = n->pNext)
+					{
+						if (n->usIndex >= NUMBEROFTILES) continue;
+
+						SMALL_TILE_DB const& pTile = gSmTileDB[n->usIndex];
+						INT16         const  sX    = sTempPosX_S;
+						INT16                sY    = sTempPosY_S - sHeight;
+
+						sY += gsRenderHeight / 5;
+
+						pTile.vo->CurrentShade(n->ubShadeLevel);
+						out.Shadow(pTile, sX, sY);
+					}
+
+					for (LEVELNODE const* n = gpWorldLevelData[usTileIndex].pStructHead; n; n = n->pNext)
+					{
+						if (n->usIndex >= NUMBEROFTILES) continue;
+						// Don't render itempools!
+						if (n->uiFlags & LEVELNODE_ITEM) continue;
+
+						SMALL_TILE_DB const& pTile = gSmTileDB[n->usIndex];
+						INT16         const  sX    = sTempPosX_S;
+						INT16                sY    = sTempPosY_S;
+
+						if (gTileDatabase[n->usIndex].uiFlags & IGNORE_WORLD_HEIGHT)
+						{
+							sY -= sModifiedHeight;
+						}
+						else
+						{
+							sY -= sHeight;
+						}
+
+						sY += gsRenderHeight / 5;
+
+						pTile.vo->CurrentShade(n->ubShadeLevel);
+						out.Trans(pTile, sX, sY);
+					}
+				}
+
+				sTempPosX_S += 8;
+				++sTempPosX_M;
+				--sTempPosY_M;
+			}
+			while (sTempPosX_S < sEndXS);
+
+			if (bXOddFlag)
+			{
+				++sAnchorPosY_M;
+			}
+			else
+			{
+				++sAnchorPosX_M;
+			}
+
+			bXOddFlag = !bXOddFlag;
+			sAnchorPosY_S += 2;
+		}
+		while (sAnchorPosY_S < sEndYS);
+	}
+
+	{ // ROOF RENDR LOOP
+		// Begin Render Loop
+		INT16 sAnchorPosX_M = sStartPointX_M;
+		INT16 sAnchorPosY_M = sStartPointY_M;
+		INT16 sAnchorPosX_S = sStartPointX_S;
+		INT16 sAnchorPosY_S = sStartPointY_S;
+		bool  bXOddFlag     = false;
+		do
+		{
+			INT16 sTempPosX_M = sAnchorPosX_M;
+			INT16 sTempPosY_M = sAnchorPosY_M;
+			INT16 sTempPosX_S = sAnchorPosX_S;
+			INT16 sTempPosY_S = sAnchorPosY_S;
+			if (bXOddFlag) sTempPosX_S += 4;
+			do
+			{
+				UINT32 const usTileIndex = FASTMAPROWCOLTOPOS(sTempPosY_M, sTempPosX_M);
+				if (usTileIndex < GRIDSIZE)
+				{
+					INT16 const sHeight = GetOffsetLandHeight(usTileIndex) / 5;
+
+					for (LEVELNODE const* n = gpWorldLevelData[usTileIndex].pRoofHead; n; n = n->pNext)
+					{
+						if (n->usIndex >= NUMBEROFTILES)   continue;
+						if (n->uiFlags & LEVELNODE_HIDDEN) continue;
+
+						SMALL_TILE_DB const& pTile = gSmTileDB[n->usIndex];
+						INT16         const  sX    = sTempPosX_S;
+						INT16                sY    = sTempPosY_S - sHeight;
+
+						sY -= WALL_HEIGHT / 5;
+						sY += gsRenderHeight / 5;
+
+						pTile.vo->CurrentShade(n->ubShadeLevel);
+
+						// RENDER!
+						out.Trans(pTile, sX, sY);
+					}
+				}
+
+				sTempPosX_S += 8;
+				++sTempPosX_M;
+				--sTempPosY_M;
+			}
+			while (sTempPosX_S < sEndXS);
+
+			if (bXOddFlag)
+			{
+				++sAnchorPosY_M;
+			}
+			else
+			{
+				++sAnchorPosX_M;
+			}
+
+			bXOddFlag = !bXOddFlag;
+			sAnchorPosY_S += 2;
+		}
+		while (sAnchorPosY_S < sEndYS);
+	}
+}
+
+
+/** The legacy blitters, into the 16-bit frame buffer. */
+struct FrameBufferSink
+{
+	UINT16* buf;
+	UINT32  pitch;
+	void Trans(SMALL_TILE_DB const& t, INT16 const x, INT16 const y) const
+	{
+		Blt8BPPDataTo16BPPBufferTransparent(buf, pitch, t.vo, x, y, t.usSubIndex);
+	}
+	void Shadow(SMALL_TILE_DB const& t, INT16 const x, INT16 const y) const
+	{
+		Blt8BPPDataTo16BPPBufferShadow(buf, pitch, t.vo, x, y, t.usSubIndex);
+	}
+};
+
+
+/** The native picture: each blit is an instance of the world pipeline (WorldPipe), rasterized once at the end in
+ * 24-bit colour. */
+struct PipeSink
+{
+	WorldPipe::Frame&      frame;
+	WorldPipe::SpritePool& pool;
+
+	void Add(SMALL_TILE_DB const& t, INT16 const x, INT16 const y, WorldPipe::Op const op) const
+	{
+		SGPVObject* const vo = t.vo;
+		ETRLEObject const& e = vo->SubregionProperties(t.usSubIndex);
+		int const ox = x + e.sOffsetX, oy = y + e.sOffsetY;
+		int const x0 = std::max(ox, 0), y0 = std::max(oy, 0);
+		int const x1 = std::min(ox + int(e.usWidth), frame.width), y1 = std::min(oy + int(e.usHeight), frame.height);
+		if (x0 >= x1 || y0 >= y1) return;
+
+		WorldPipe::Instance in{};
+		in.x0 = UINT16(x0); in.y0 = UINT16(y0); in.x1 = UINT16(x1); in.y1 = UINT16(y1);
+		in.ox = INT16(ox);  in.oy = INT16(oy);
+		in.op = op;
+		in.columns = WorldPipe::NO_COLUMNS;
+		WorldPipe::SpritePool::Entry const& sp = pool.Get(vo->PixData(e), e.uiDataLength, e.usWidth, e.usHeight);
+		in.sprite = sp.offset;
+		in.spriteW = sp.w;
+		UINT16 const* const shade = vo->CurrentShade();
+		in.palette = frame.Palette(shade, vo->CurrentShade24());
+		frame.instances.push_back(in);
+	}
+	void Trans(SMALL_TILE_DB const& t, INT16 const x, INT16 const y) const { Add(t, x, y, WorldPipe::Op::Transparent); }
+	void Shadow(SMALL_TILE_DB const& t, INT16 const x, INT16 const y) const { Add(t, x, y, WorldPipe::Op::Shadow); }
+};
+
+
+void RenderOverheadPicture(std::vector<uint32_t>& rgb, int& w, int& h)
+{
+	InitNewOverheadDB(giCurrentTilesetID);
+	w = OVERHEAD_PICTURE_W;
+	h = OVERHEAD_PICTURE_H;
+
+	// the pool keys sprites by the address of their data: a new tileset starts a new one
+	static WorldPipe::SpritePool pool;
+	static TileSetID poolTileset = TILESET_INVALID;
+	if (poolTileset != giCurrentTilesetID)
+	{
+		pool.Reset();
+		poolTileset = giCurrentTilesetID;
+	}
+	pool.NextFrame();
+	WorldPipe::Frame frame;
+	frame.Clear(w, h);
+	frame.clearColor = 0;
+	PipeSink sink{ frame, pool };
+	TraverseOverhead(sink, 0, WORLD_COLS / 2, 0, 0, INT16(w), INT16(h));
+
+	WorldPipe::Target target;
+	target.Clear(frame);
+	WorldPipe::Rasterize(frame, pool, target);
+	rgb = std::move(target.color);
+
+	// OK, blacken out edges of smaller maps...
+	if (gMapInformation.ubRestrictedScrollID != 0)
+	{
+		for (UINT8 const dir : { NORTH, WEST, SOUTH, EAST })
+		{
+			INT16 x1, y1, x2, y2;
+			CalculateRestrictedMapCoords(dir, &x1, &y1, &x2, &y2, INT16(w), INT16(h));
+			for (int y = std::max<int>(y1, 0); y < std::min<int>(y2, h); ++y)
+				for (int x = std::max<int>(x1, 0); x < std::min<int>(x2, w); ++x) rgb[size_t(y) * w + x] = 0;
+		}
+	}
+}
+
+
 void RenderOverheadMap(INT16 const sStartPointX_M, INT16 const sStartPointY_M, INT16 const sStartPointX_S, INT16 const sStartPointY_S, INT16 const sEndXS, INT16 const sEndYS, BOOLEAN const fFromMapUtility)
 {
 	if (!gfOverheadMapDirty) return;
@@ -482,226 +846,8 @@ void RenderOverheadMap(INT16 const sStartPointX_M, INT16 const sStartPointY_M, I
 	gfOverheadMapDirty = FALSE;
 
 	{ SGPVSurface::Lock l(FRAME_BUFFER);
-		UINT16* const pDestBuf         = l.Buffer<UINT16>();
-		UINT32  const uiDestPitchBYTES = l.Pitch();
-
-		{ // Begin Render Loop
-			INT16 sAnchorPosX_M = sStartPointX_M;
-			INT16 sAnchorPosY_M = sStartPointY_M;
-			INT16 sAnchorPosX_S = sStartPointX_S;
-			INT16 sAnchorPosY_S = sStartPointY_S;
-			bool  bXOddFlag     = false;
-			do
-			{
-				INT16 sTempPosX_M = sAnchorPosX_M;
-				INT16 sTempPosY_M = sAnchorPosY_M;
-				INT16 sTempPosX_S = sAnchorPosX_S;
-				INT16 sTempPosY_S = sAnchorPosY_S;
-				if (bXOddFlag) sTempPosX_S += 4;
-				do
-				{
-					UINT32 const usTileIndex = FASTMAPROWCOLTOPOS(sTempPosY_M, sTempPosX_M);
-					if (usTileIndex < GRIDSIZE)
-					{
-						INT16 const sHeight = GetOffsetLandHeight(usTileIndex) / 5;
-						for (LEVELNODE const* n = gpWorldLevelData[usTileIndex].pLandStart; n; n = n->pPrevNode)
-						{
-							SMALL_TILE_DB const& pTile = gSmTileDB[n->usIndex];
-							INT16         const  sX    = sTempPosX_S;
-							INT16         const  sY    = sTempPosY_S - sHeight + gsRenderHeight / 5;
-							pTile.vo->CurrentShade(n->ubShadeLevel);
-							Blt8BPPDataTo16BPPBufferTransparent(pDestBuf, uiDestPitchBYTES, pTile.vo, sX, sY, pTile.usSubIndex);
-						}
-					}
-
-					sTempPosX_S += 8;
-					++sTempPosX_M;
-					--sTempPosY_M;
-				}
-				while (sTempPosX_S < sEndXS);
-
-				if (bXOddFlag)
-				{
-					++sAnchorPosY_M;
-				}
-				else
-				{
-					++sAnchorPosX_M;
-				}
-
-				bXOddFlag = !bXOddFlag;
-				sAnchorPosY_S += 2;
-			}
-			while (sAnchorPosY_S < sEndYS);
-		}
-
-		{ // Begin Render Loop
-			INT16 sAnchorPosX_M = sStartPointX_M;
-			INT16 sAnchorPosY_M = sStartPointY_M;
-			INT16 sAnchorPosX_S = sStartPointX_S;
-			INT16 sAnchorPosY_S = sStartPointY_S;
-			bool  bXOddFlag     = false;
-			do
-			{
-				INT16 sTempPosX_M = sAnchorPosX_M;
-				INT16 sTempPosY_M = sAnchorPosY_M;
-				INT16 sTempPosX_S = sAnchorPosX_S;
-				INT16 sTempPosY_S = sAnchorPosY_S;
-				if (bXOddFlag) sTempPosX_S += 4;
-				do
-				{
-					UINT32 const usTileIndex = FASTMAPROWCOLTOPOS(sTempPosY_M, sTempPosX_M);
-					if (usTileIndex < GRIDSIZE)
-					{
-						INT16 const sHeight         = GetOffsetLandHeight(usTileIndex) / 5;
-						INT16 const sModifiedHeight = GetModifiedOffsetLandHeight(usTileIndex) / 5;
-
-						for (LEVELNODE const* n = gpWorldLevelData[usTileIndex].pObjectHead; n; n = n->pNext)
-						{
-							if (n->usIndex >= NUMBEROFTILES) continue;
-							// Don't render itempools!
-							if (n->uiFlags & LEVELNODE_ITEM) continue;
-
-							SMALL_TILE_DB const& pTile = gSmTileDB[n->usIndex];
-							INT16         const  sX    = sTempPosX_S;
-							INT16                sY    = sTempPosY_S;
-
-							if (gTileDatabase[n->usIndex].uiFlags & IGNORE_WORLD_HEIGHT)
-							{
-								sY -= sModifiedHeight;
-							}
-							else
-							{
-								sY -= sHeight;
-							}
-
-							sY += gsRenderHeight / 5;
-
-							pTile.vo->CurrentShade(n->ubShadeLevel);
-							Blt8BPPDataTo16BPPBufferTransparent(pDestBuf, uiDestPitchBYTES, pTile.vo, sX, sY, pTile.usSubIndex);
-						}
-
-						for (LEVELNODE const* n = gpWorldLevelData[usTileIndex].pShadowHead; n; n = n->pNext)
-						{
-							if (n->usIndex >= NUMBEROFTILES) continue;
-
-							SMALL_TILE_DB const& pTile = gSmTileDB[n->usIndex];
-							INT16         const  sX    = sTempPosX_S;
-							INT16                sY    = sTempPosY_S - sHeight;
-
-							sY += gsRenderHeight / 5;
-
-							pTile.vo->CurrentShade(n->ubShadeLevel);
-							Blt8BPPDataTo16BPPBufferShadow(pDestBuf, uiDestPitchBYTES, pTile.vo, sX, sY, pTile.usSubIndex);
-						}
-
-						for (LEVELNODE const* n = gpWorldLevelData[usTileIndex].pStructHead; n; n = n->pNext)
-						{
-							if (n->usIndex >= NUMBEROFTILES) continue;
-							// Don't render itempools!
-							if (n->uiFlags & LEVELNODE_ITEM) continue;
-
-							SMALL_TILE_DB const& pTile = gSmTileDB[n->usIndex];
-							INT16         const  sX    = sTempPosX_S;
-							INT16                sY    = sTempPosY_S;
-
-							if (gTileDatabase[n->usIndex].uiFlags & IGNORE_WORLD_HEIGHT)
-							{
-								sY -= sModifiedHeight;
-							}
-							else
-							{
-								sY -= sHeight;
-							}
-
-							sY += gsRenderHeight / 5;
-
-							pTile.vo->CurrentShade(n->ubShadeLevel);
-							Blt8BPPDataTo16BPPBufferTransparent(pDestBuf, uiDestPitchBYTES, pTile.vo, sX, sY, pTile.usSubIndex);
-						}
-					}
-
-					sTempPosX_S += 8;
-					++sTempPosX_M;
-					--sTempPosY_M;
-				}
-				while (sTempPosX_S < sEndXS);
-
-				if (bXOddFlag)
-				{
-					++sAnchorPosY_M;
-				}
-				else
-				{
-					++sAnchorPosX_M;
-				}
-
-				bXOddFlag = !bXOddFlag;
-				sAnchorPosY_S += 2;
-			}
-			while (sAnchorPosY_S < sEndYS);
-		}
-
-		{ // ROOF RENDR LOOP
-			// Begin Render Loop
-			INT16 sAnchorPosX_M = sStartPointX_M;
-			INT16 sAnchorPosY_M = sStartPointY_M;
-			INT16 sAnchorPosX_S = sStartPointX_S;
-			INT16 sAnchorPosY_S = sStartPointY_S;
-			bool  bXOddFlag     = false;
-			do
-			{
-				INT16 sTempPosX_M = sAnchorPosX_M;
-				INT16 sTempPosY_M = sAnchorPosY_M;
-				INT16 sTempPosX_S = sAnchorPosX_S;
-				INT16 sTempPosY_S = sAnchorPosY_S;
-				if (bXOddFlag) sTempPosX_S += 4;
-				do
-				{
-					UINT32 const usTileIndex = FASTMAPROWCOLTOPOS(sTempPosY_M, sTempPosX_M);
-					if (usTileIndex < GRIDSIZE)
-					{
-						INT16 const sHeight = GetOffsetLandHeight(usTileIndex) / 5;
-
-						for (LEVELNODE const* n = gpWorldLevelData[usTileIndex].pRoofHead; n; n = n->pNext)
-						{
-							if (n->usIndex >= NUMBEROFTILES)   continue;
-							if (n->uiFlags & LEVELNODE_HIDDEN) continue;
-
-							SMALL_TILE_DB const& pTile = gSmTileDB[n->usIndex];
-							INT16         const  sX    = sTempPosX_S;
-							INT16                sY    = sTempPosY_S - sHeight;
-
-							sY -= WALL_HEIGHT / 5;
-							sY += gsRenderHeight / 5;
-
-							pTile.vo->CurrentShade(n->ubShadeLevel);
-
-							// RENDER!
-							Blt8BPPDataTo16BPPBufferTransparent(pDestBuf, uiDestPitchBYTES, pTile.vo, sX, sY, pTile.usSubIndex);
-						}
-					}
-
-					sTempPosX_S += 8;
-					++sTempPosX_M;
-					--sTempPosY_M;
-				}
-				while (sTempPosX_S < sEndXS);
-
-				if (bXOddFlag)
-				{
-					++sAnchorPosY_M;
-				}
-				else
-				{
-					++sAnchorPosX_M;
-				}
-
-				bXOddFlag = !bXOddFlag;
-				sAnchorPosY_S += 2;
-			}
-			while (sAnchorPosY_S < sEndYS);
-		}
+		FrameBufferSink sink{ l.Buffer<UINT16>(), l.Pitch() };
+		TraverseOverhead(sink, sStartPointX_M, sStartPointY_M, sStartPointX_S, sStartPointY_S, sEndXS, sEndYS);
 	}
 
 	// OK, blacken out edges of smaller maps...
@@ -758,7 +904,7 @@ static void RenderOverheadOverlays(void)
 	// Soldier overlay
 	SGPVObject*        const marker = GetVObject(uiPERSONS);
 	SOLDIERTYPE const* const sel    = gfTacticalPlacementGUIActive || !gfRadarCurrentGuyFlash ? 0 : GetSelectedMan();
-	UINT16             const end    = gfTacticalPlacementGUIActive ? gTacticalStatus.Team[OUR_TEAM].bLastID : MAX_NUM_SOLDIERS;
+	UINT16             const end    = gfTacticalPlacementGUIActive ? gTacticalStatus.Team[OUR_TEAM].bLastID + 1 : MAX_NUM_SOLDIERS;
 	for (UINT32 i = 0; i < end; ++i)
 	{
 		SOLDIERTYPE const& s = GetMan(i);
@@ -886,13 +1032,12 @@ static void ClickOverheadRegionCallbackSecondary(MOUSE_REGION* reg, UINT32 reaso
 }
 
 
-static GridNo InternalGetOverheadMouseGridNo(const INT dy)
+/** The tile under a picture pixel (+ @a dy: the legacy nudge). */
+static GridNo GridNoAtPicturePoint(int const x, int const y, int const dy)
 {
-	if (!(OverheadRegion.uiFlags & MSYS_MOUSE_IN_AREA)) return NOWHERE;
-
 	// ATE: Adjust alogrithm values a tad to reflect map positioning
-	INT16 const sWorldScreenX = (gusMouseXPos - STD_SCREEN_X - gsStartRestrictedX -  5) * 5;
-	INT16       sWorldScreenY = (gusMouseYPos - OVERHEAD_Y - gsStartRestrictedY + dy) * 5;
+	INT16 const sWorldScreenX = (x - gsStartRestrictedX -  5) * 5;
+	INT16       sWorldScreenY = (y - gsStartRestrictedY + dy) * 5;
 
 	// Get new proposed center location.
 	const GridNo grid_no = GetMapPosFromAbsoluteScreenXY(sWorldScreenX, sWorldScreenY);
@@ -902,6 +1047,20 @@ static GridNo InternalGetOverheadMouseGridNo(const INT dy)
 	sWorldScreenY -= gsRenderHeight;
 
 	return GetMapPosFromAbsoluteScreenXY(sWorldScreenX, sWorldScreenY);
+}
+
+
+GridNo OverheadGridNoAtPoint(int const x, int const y, bool const forSoldier)
+{
+	if (x < 0 || y < 0 || x >= OVERHEAD_PICTURE_W || y >= OVERHEAD_PICTURE_H) return NOWHERE;
+	return GridNoAtPicturePoint(x, y, forSoldier ? 0 : -8);
+}
+
+
+static GridNo InternalGetOverheadMouseGridNo(const INT dy)
+{
+	if (!(OverheadRegion.uiFlags & MSYS_MOUSE_IN_AREA)) return NOWHERE;
+	return GridNoAtPicturePoint(gusMouseXPos - STD_SCREEN_X, gusMouseYPos - OVERHEAD_Y, dy);
 }
 
 

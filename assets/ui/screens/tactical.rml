@@ -3,6 +3,7 @@
 	<title>Tactical HUD</title>
 	<link type="text/rcss" href="../components.rcss"/>
 	<link type="text/rcss" href="tactical.rcss"/>
+	<link type="text/rcss" href="overhead.rcss"/>
 </head>
 <!-- The native tactical HUD (docs/ui/tactical.md, src/game/NativeUI/TacticalHud.cc). An overlay over the tactical
      screen: everything with class "hit" takes the mouse, the rest lets it through to the world. -->
@@ -66,8 +67,9 @@
 	<!-- sector card (top right) -->
 	<div class="mini hud hit" id="tac.minimap">
 		<div class="where"><span class="sec" id="tac.sector">{{sector}}</span><span class="town">{{town}}</span><div class="grow"></div><span class="day">{{day}}</span><span class="clock" id="tac.clock">{{clock}}</span></div>
+		<div class="radar hit" id="tac.radar"><img class="pic" id="tac.radar.pic"/><div class="layer audit-skip" id="tac.radar.layer"></div></div>
 		<div class="mtools">
-			<button class="icon-btn" id="tac.overhead" title="Overhead map (Insert)" data-event-click="key('insert')"><img class="icon" src="icon-map"/></button>
+			<button class="icon-btn" id="tac.overhead" title="Overhead map (Insert)" data-event-click="overhead"><img class="icon" src="icon-map"/></button>
 			<button class="icon-btn" id="tac.roofs" title="Tree tops (T)" data-event-click="key('t')"><img class="icon" src="icon-unexplored"/></button>
 			<button class="icon-btn" id="tac.glow" title="Item glow (I)" data-event-click="key('i')"><img class="icon" src="icon-sector-inventory"/></button>
 			<button class="icon-btn" id="tac.log" title="Message log (H)" data-event-click="log"><img class="icon" src="icon-menu"/></button>

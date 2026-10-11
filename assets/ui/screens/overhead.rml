@@ -1,0 +1,62 @@
+<rml>
+<head>
+	<title>Overhead map</title>
+	<link type="text/rcss" href="../components.rcss"/>
+	<link type="text/rcss" href="tactical.rcss"/>
+	<link type="text/rcss" href="overhead.rcss"/>
+</head>
+<!-- The native overhead map and the placement (issue #323, docs/plan/native-tactical.md, wireframes W11 and W12). View
+     model: "overhead" (src/game/NativeUI/TacticalOverhead.cc). The whole sector is one picture (the small-tile
+     traversal recorded through the world pipeline) at the largest integer scale that fits; the markers, zones, the
+     view box and the hover are native markup over it, in the picture's own pixels. -->
+<body class="t5 ovh">
+<div class="ovh-root" id="ovh" data-model="overhead">
+	<div class="ovh-map hud">
+		<div class="hud-head" id="ovh.head"><img class="icon sm" id="ovh.icon" src="icon-map" data-if="!placement"/><img class="icon sm" src="icon-destination" data-if="placement"/><span class="t" id="ovh.title" style="margin-left: 8dp;">{{title}}</span><span class="m" id="ovh.subtitle">{{subtitle}}</span></div>
+		<div class="well" id="ovh.well">
+			<div class="mapbox hit" id="ovh.map">
+				<img class="pic" id="ovh.pic" data-attr-src="map_src"/>
+				<div class="layer audit-skip" id="ovh.layer"></div>
+			</div>
+		</div>
+	</div>
+
+	<div class="ovh-side hud">
+		<div class="hud-head"><span class="t" id="ovh.side.title">{{side_title}}</span><div class="grow"></div><span class="m" id="ovh.side.meta">{{side_meta}}</span></div>
+
+		<!-- the overhead: legend with counts, the squad -->
+		<div data-if="!placement">
+			<span class="sec cap">{{l_legend}}</span>
+			<div class="legend" id="ovh.legend">
+				<div class="lg" data-for="g : legend"><span data-attr-class="'sw ' + g.cls"></span><span class="a">{{g.label}}</span><span class="n">{{g.n}}</span></div>
+			</div>
+			<span class="sec cap">{{l_squad}}</span>
+			<div class="who" data-for="w : squad" data-class-sel="w.sel" data-attr-id="'ovh.squad[' + w.id + ']'">
+				<div class="face"><img class="pic" data-attr-src="w.face" data-if="w.face != ''"/></div><span class="nm">{{w.name}}</span><span class="st">{{w.status}}</span>
+			</div>
+			<span class="none" data-if="squad_empty">{{l_empty}}</span>
+		</div>
+
+		<!-- the placement: progress, the roster, the notice -->
+		<div data-if="placement">
+			<div class="prog"><div class="fill" data-style-width="pct + '%'"></div></div>
+			<div class="who card" data-for="r : roster" data-class-sel="r.sel" data-attr-id="'ovh.roster[' + r.idx + ']'" data-event-click="select(r.idx)" data-event-mouseover="hover(r.idx)" data-event-mouseout="hover(-1)">
+				<div class="face"><img class="pic" data-attr-src="r.face" data-if="r.face != ''"/></div><span class="nm">{{r.name}}</span><span data-attr-class="r.cls">{{r.label}}</span>
+			</div>
+			<div class="note" id="ovh.notice" data-if="notice != ''">{{notice}}</div>
+			<div class="btns">
+				<button class="btn" id="ovh.clear" data-attr-title="help_clear" data-event-click="clear"><img class="icon" src="icon-remove"/><span class="label">{{l_clear}}</span><span class="kbd">C</span></button>
+				<button class="btn" id="ovh.spread" data-class-is-active="mode == 'spread'" data-attr-title="help_spread" data-event-click="spread"><img class="icon" src="icon-squad"/><span class="label">{{l_spread}}</span><span class="kbd">S</span></button>
+				<button class="btn" id="ovh.group" data-class-is-active="mode == 'group'" data-attr-title="help_group" data-event-click="group"><img class="icon" src="icon-player-group"/><span class="label">{{l_group}}</span><span class="kbd">G</span></button>
+				<button class="btn btn-primary" id="ovh.done" data-class-is-disabled="!can_done" data-attr-title="help_done" data-event-click="done"><span class="label">{{l_done}}</span><span class="kbd">Enter</span></button>
+			</div>
+		</div>
+
+		<div class="keys">
+			<div class="ln" data-for="k : keys"><span class="kbd">{{k.key}}</span><span>{{k.text}}</span></div>
+			<button class="btn back" id="ovh.back" data-if="!placement" data-event-click="close"><img class="icon" src="icon-close"/><span class="label">{{l_back}}</span><span class="kbd">Esc</span></button>
+		</div>
+	</div>
+</div>
+</body>
+</rml>

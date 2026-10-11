@@ -543,6 +543,7 @@ bool Runtime::AnythingShown() const
 	if (TacticalHudActive()) return true;
 	if (WeaponReadoutActive()) return true;
 	if (LoadoutActive()) return true;
+	if (TacticalOverheadActive()) return true;
 	return false;
 }
 
@@ -553,6 +554,7 @@ bool Runtime::NativeCursorShown() const
 	if (msgbox && msgbox->IsVisible()) return true;
 	if (WeaponReadoutActive()) return true;
 	if (LoadoutActive()) return true;
+	if (TacticalOverheadActive()) return true;
 	if (TacticalHudOwnsCursor()) return true;
 	return ConfiguredMode("cursor") == UiMode::Native && GetCurrentCursorIndex() == CURSOR_NORMAL;
 }
@@ -621,6 +623,7 @@ void BeginFrame()
 	TacticalHudUpdate();
 	WeaponReadoutUpdate();
 	LoadoutUpdate();
+	TacticalOverheadUpdate();
 	g_rt.UpdateOverlays();
 }
 
@@ -635,6 +638,7 @@ void CaptureFrame()
 	TacticalHudUpdate();
 	WeaponReadoutUpdate();
 	LoadoutUpdate();
+	TacticalOverheadUpdate();
 	g_rt.UpdateOverlays();
 }
 
@@ -737,7 +741,7 @@ void Runtime::GpuFrameRender(SDL_GPURenderPass* pass, int, int)
 
 bool CapturesMouse()
 {
-	return g_rt.running && ((g_rt.screen && !g_rt.screen->PassThrough()) || (g_rt.msgbox && g_rt.msgbox->IsVisible()) || TacticalHudWantsMouse() || WeaponReadoutActive() || LoadoutActive());
+	return g_rt.running && ((g_rt.screen && !g_rt.screen->PassThrough()) || (g_rt.msgbox && g_rt.msgbox->IsVisible()) || TacticalHudWantsMouse() || WeaponReadoutActive() || LoadoutActive() || TacticalOverheadActive());
 }
 
 void MouseMoved(int const canvasX, int const canvasY)
